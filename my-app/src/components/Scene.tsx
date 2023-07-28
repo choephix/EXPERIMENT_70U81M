@@ -1,4 +1,4 @@
-import { Environment, OrbitControls } from '@react-three/drei';
+import { Environment } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import Model from './Model';
 

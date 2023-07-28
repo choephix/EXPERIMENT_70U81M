@@ -35,6 +35,17 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       camera.position.copy(center);
       camera.position.x += size.length(); //Move camera to some distance
       camera.lookAt(center);
+
+      // Log dimensions of all objects
+      gltf.scene.traverse(child => {
+        if (child instanceof THREE.Mesh) {
+          const bbox = new THREE.Box3().setFromObject(child);
+          const size = bbox.getSize(new THREE.Vector3());
+          console.log([size.x, size.y, size.z]);
+          child.userData.size = [size.x, size.y, size.z];
+          child.userData.sizeMax = Math.max(size.x, size.y, size.z);
+        }
+      });
     });
   }, [url, camera]);
 
@@ -59,10 +70,18 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       // Sort by ascending distance
       distances.sort((a, b) => a.distance - b.distance);
 
+      Object.assign(window, { _dist: distances[0].distance });
+
       // Only the first 100 closest should be visible
       distances.forEach((item, index) => {
         // item.object.visible = index < 1000;
-        item.object.visible = true
+        item.object.visible = true;
+
+        const sizeMax = item.object.userData.sizeMax as number;
+        const distanceFromCamera = item.distance as number;
+        // const ratio = distanceFromCamera / sizeMax;
+
+        item.object.visible = sizeMax > 0.5 || distanceFromCamera < 15; //
       });
     }
   });

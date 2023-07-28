@@ -41,8 +41,12 @@ const Viewer = () => {
             dpr={isDragging ? 0.5 : 1}
             ref={canvasRef}
           >
-            <OrbitControls onStart={handleStart} onEnd={handleEnd} />
-            {/* <OrbitControls enablePan enableZoom zoomSpeed={1.2} /> */}
+            <OrbitControls //
+              // dampingFactor={0.01}
+              enableDamping={false}
+              onStart={handleStart}
+              onEnd={handleEnd}
+            />
             <Scene url={url} />
           </Canvas>
         </>
