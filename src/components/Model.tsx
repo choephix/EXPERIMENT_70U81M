@@ -28,7 +28,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
       //Look at the center of the model
       camera.position.copy(center);
-      camera.position.x += .1 * size.length(); //Move camera to some distance
+      camera.position.x += 0.1 * size.length(); //Move camera to some distance
       camera.lookAt(center);
     });
   }, [url, camera]);
@@ -64,7 +64,7 @@ const ModelOptimizer: React.FC<ModelOptimizerProps> = ({ model, camera }: ModelO
         child.userData.sizeMax = Math.max(size.x, size.y, size.z);
 
         console.log('sizeMax', child.userData.sizeMax);
-        
+
         child.addEventListener('click', () => handleClick(child));
       }
     });
@@ -111,13 +111,14 @@ function updateObjectVisibility(
   index: number
 ) {
   // item.object.visible = index < 1000;
-  item.object.visible = true;
 
   const sizeMax = item.object.userData.sizeMax as number;
   const distanceFromCamera = item.distance as number;
   // const ratio = distanceFromCamera / sizeMax;
 
   // item.object.visible = sizeMax > 0.5 || distanceFromCamera < 20; //
+  // item.object.visible = distanceFromCamera < 80; //
+  item.object.visible = index < 50; //
 }
 
 export default Model;
