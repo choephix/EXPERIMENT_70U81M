@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { findDuplicateGeometries } from '../utils/findDuplicates';
 
 type ModelProps = {
   url: string;
@@ -19,8 +20,17 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   const ref = useRef<THREE.Object3D | null>(null);
 
   useEffect(() => {
+    if (!url) return;
+    if (model?.userData.url === url) return;
+
+    console.log('Loading model:', url);
+
     loader.load(url, gltf => {
+      console.log('Loaded gltf model', gltf);
+
       setModel(gltf.scene);
+
+      gltf.scene.userData.url = url;
 
       const s = new THREE.Box3().setFromObject(gltf.scene);
       const center = s.getCenter(new THREE.Vector3());
@@ -30,6 +40,8 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       camera.position.copy(center);
       camera.position.x += 0.1 * size.length(); //Move camera to some distance
       camera.lookAt(center);
+
+      findDuplicateGeometries(gltf.scene);
     });
   }, [url, camera]);
 
@@ -63,7 +75,7 @@ const ModelOptimizer: React.FC<ModelOptimizerProps> = ({ model, camera }: ModelO
         child.userData.size = [size.x, size.y, size.z];
         child.userData.sizeMax = Math.max(size.x, size.y, size.z);
 
-        console.log('sizeMax', child.userData.sizeMax);
+        // console.log('sizeMax', child.userData.sizeMax);
 
         child.addEventListener('click', () => handleClick(child));
       }
@@ -118,7 +130,7 @@ function updateObjectVisibility(
 
   // item.object.visible = sizeMax > 0.5 || distanceFromCamera < 20; //
   // item.object.visible = distanceFromCamera < 80; //
-  item.object.visible = index < 50; //
+  // item.object.visible = index < 50; //
 }
 
 export default Model;
