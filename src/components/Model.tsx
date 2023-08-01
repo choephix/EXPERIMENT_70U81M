@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import {
-  addSingleLight,
   findDuplicateGeometries,
   flattenHierarchy,
   mergeGeometriesInScene,
@@ -66,7 +65,6 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);
 
-      addSingleLight(gltf.scene);
       Object.assign(window, { saveGLB: () => saveGLB(gltf.scene) });
 
       {

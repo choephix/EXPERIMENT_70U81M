@@ -1,26 +1,10 @@
-import * as THREE from 'three';
-import { Mesh, Object3D } from 'three';
-import { BufferGeometry } from 'three';
-import { DirectionalLight } from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import * as THREE from 'three';
+import { Mesh, Object3D, BufferGeometry } from 'three';
 
 // const defaultMaterial = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
 // const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f030 });
-const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0x909090 });
-
-export function addSingleLight(scene: Object3D): void {
-  {
-    const light = new DirectionalLight(0xffffff, 3);
-    light.position.set(1, 1, 1); // light comes from above, y = 1
-    scene.add(light);
-  }
-
-  {
-    const light = new DirectionalLight(0x0000ff, 3);
-    light.position.set(-1, -1, -1); // light comes from above, y = 1
-    scene.add(light);
-  }
-}
+const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xc0c0c0 });
 
 export function updateProperties(scene: Object3D): void {
   scene.traverse(object => {
@@ -64,15 +48,26 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
 
   const mergedMeshes: Mesh[] = [];
 
+  const metrics = [] as any[];
+
   scene.traverse(node => {
     if (node instanceof Mesh && node.geometry instanceof BufferGeometry) {
       // Apply the world matrix to the geometry
       const clonedGeometry = node.geometry.clone();
       clonedGeometry.applyMatrix4(node.matrixWorld);
 
+      node.geometry.computeBoundingBox();
+      const box = node.geometry.boundingBox!;
+      const size = box.getSize(new THREE.Vector3()).length();
+      const skip = size < .05;
+
       // Add the geometry to the array
-      geometries.push(clonedGeometry);
-      meshCount++;
+      if (!skip) {
+        geometries.push(clonedGeometry);
+        meshCount++;
+      }
+
+      metrics.push(size);
 
       // Merge the geometries every 10000 meshes
       if (meshCount === 10000) {
@@ -88,6 +83,8 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
       }
     }
   });
+
+  console.log(metrics);
 
   // Merge any remaining geometries
   if (geometries.length > 0) {
