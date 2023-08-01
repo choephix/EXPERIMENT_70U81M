@@ -1,7 +1,52 @@
 import * as THREE from 'three';
+import { Mesh, Object3D, Scene } from 'three';
+
+export function updateProperties(scene: Object3D): void {
+  const material = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
+
+  const meshes: Mesh[] = [];
+  scene.traverse(object => {
+    if (object instanceof THREE.Mesh) {
+      const mesh = object;
+
+      const prevMaterial = mesh.material as THREE.Material;
+      prevMaterial.dispose();
+      mesh.material = material;
+
+      // mesh.frustumCulled = false;
+      mesh.matrixAutoUpdate = false;
+    }
+  });
+
+  const group = new THREE.Group();
+  for (const mesh of meshes) {
+    group.add(mesh);
+  }
+
+  scene.add(group);
+  scene.updateWorldMatrix(true, true);
+}
+
+export function flattenHierarchy(scene: Object3D): void {
+  const meshes: Mesh[] = [];
+  scene.traverse(object => {
+    if (object instanceof THREE.Mesh) {
+      meshes.push(object);
+    }
+  });
+
+  const group = new THREE.Group();
+  for (const mesh of meshes) {
+    group.add(mesh);
+  }
+
+  scene.add(group);
+  scene.updateWorldMatrix(true, true);
+}
 
 export function findDuplicateGeometries(scene: THREE.Group) {
   const meshesByVertexCount: { [key: number]: THREE.Mesh[] } = {};
+
   function registerMesh(mesh: THREE.Mesh) {
     const geometry = mesh.geometry as THREE.BufferGeometry;
     const vertexCount = geometry.getAttribute('position').count;
@@ -51,12 +96,12 @@ export function findDuplicateGeometries(scene: THREE.Group) {
       }
     }
 
-    console.log(`Found a new duplicate group with ${vertexCount} vertices.`);
+    // console.log(`Found a new duplicate group with ${vertexCount} vertices.`);
     duplicateGroups.push({ sample: mesh, duplicates: [], vertexCount });
   }
 
   for (const vertexCountString in meshesByVertexCount) {
-    console.log(`Checking meshes with ${vertexCountString} vertices...`);
+    // console.log(`Checking meshes with ${vertexCountString} vertices...`);
 
     const vertexCount = parseInt(vertexCountString);
 

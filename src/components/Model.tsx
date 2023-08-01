@@ -1,9 +1,10 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { findDuplicateGeometries, optimizeScene } from '../utils/findDuplicates';
+import { findDuplicateGeometries, flattenHierarchy, optimizeScene, updateProperties } from '../utils/findDuplicates';
+import { OrbitControls } from 'three-stdlib';
 
 type ModelProps = {
   url: string;
@@ -19,6 +20,8 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   const [model, setModel] = useState<THREE.Object3D | null>(null);
   const ref = useRef<THREE.Object3D | null>(null);
 
+  const { controls } = useThree();
+
   useEffect(() => {
     if (!url) return;
     if (model?.userData.url === url) return;
@@ -28,25 +31,49 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
     loader.load(url, gltf => {
       console.log('Loaded gltf model', gltf);
 
+      const model = gltf.scene;
+
+      function getModelCenterAndSize(model: THREE.Object3D) {
+        const bbox = new THREE.Box3().setFromObject(model);
+        const center = bbox.getCenter(new THREE.Vector3());
+        const size = bbox.getSize(new THREE.Vector3());
+        return [center, size] as const;
+      }
+
       setModel(gltf.scene);
 
       gltf.scene.userData.url = url;
 
-      const s = new THREE.Box3().setFromObject(gltf.scene);
-      const center = s.getCenter(new THREE.Vector3());
-      const size = s.getSize(new THREE.Vector3());
+      const [modelCenter, modelSize] = getModelCenterAndSize(model);
 
-      //Look at the center of the model
-      camera.position.copy(center);
-      camera.position.x += 0.1 * size.length(); //Move camera to some distance
-      camera.lookAt(center);
+      if (!(controls instanceof OrbitControls)) {
+        console.warn('Controls not instance of OrbitControls', controls);
+      } else {
+        console.warn('Setting controls target to model center', modelCenter);
+        // controls.target.copy(modelCenter);
+        // controls.update();
+      }
+
+      updateProperties(gltf.scene);
+      flattenHierarchy(gltf.scene);
+
+      {
+        const s = new THREE.Box3().setFromObject(gltf.scene);
+        const center = s.getCenter(new THREE.Vector3());
+        const size = s.getSize(new THREE.Vector3());
+
+        //Look at the center of the model
+        camera.position.copy(center);
+        camera.position.x += 0.1 * size.length(); //Move camera to some distance
+        camera.lookAt(center);
+      }
 
       // findDuplicateGeometries(gltf.scene);
-      optimizeScene(gltf.scene);
+      // optimizeScene(gltf.scene);
 
       console.log('Done optimizing model');
     });
-  }, [url, camera]);
+  }, [url, camera, controls]);
 
   if (!model) {
     return null;
@@ -85,6 +112,7 @@ const ModelOptimizer: React.FC<ModelOptimizerProps> = ({ model, camera }: ModelO
     });
   }, [model]);
 
+  /** *
   useFrame(() => {
     // This assumes that the model is an Object3D (or derived class) instance.
     if (model) {
@@ -108,12 +136,12 @@ const ModelOptimizer: React.FC<ModelOptimizerProps> = ({ model, camera }: ModelO
 
       Object.assign(window, { _dist: distances[0].distance });
 
-      // Only the first 100 closest should be visible
       distances.forEach((item, index) => {
         updateObjectVisibility(item, index);
       });
     }
   });
+  /** */
 
   return null;
 };
@@ -134,6 +162,7 @@ function updateObjectVisibility(
   // item.object.visible = sizeMax > 0.5 || distanceFromCamera < 20; //
   // item.object.visible = distanceFromCamera < 80; //
   // item.object.visible = index < 50; //
+  // item.object.visible = distanceFromCamera < 120; //
 }
 
 export default Model;

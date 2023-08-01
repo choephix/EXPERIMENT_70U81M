@@ -50,6 +50,12 @@ const Viewer = () => {
             style={{ width: '100%', height: '100%' }}
             dpr={isDragging ? 0.5 : 1}
             ref={canvasRef}
+            gl={{
+              // antialias: !isDragging,
+              antialias: false,
+              powerPreference: 'high-performance',
+              precision: 'lowp', // Can be "highp", "mediump", "lowp"
+            }}
           >
             <OrbitControls //
               ref={controlsRef}

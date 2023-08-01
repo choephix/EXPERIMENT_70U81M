@@ -10,7 +10,7 @@ const Scene: React.FC<{ url: string }> = ({ url }) => {
       <ambientLight />
       <pointLight position={[10, 10, 10]} />
       <Model url={url} camera={camera} />
-      <Environment preset='dawn' background />
+      <Environment preset='night' background />
     </>
   );
 };
