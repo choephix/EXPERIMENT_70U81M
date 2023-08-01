@@ -1,61 +1,115 @@
 import * as THREE from 'three';
 
 export function findDuplicateGeometries(scene: THREE.Group) {
-  const meshes: THREE.Mesh[] = [];
+  const meshesByVertexCount: { [key: number]: THREE.Mesh[] } = {};
+  function registerMesh(mesh: THREE.Mesh) {
+    const geometry = mesh.geometry as THREE.BufferGeometry;
+    const vertexCount = geometry.getAttribute('position').count;
+    if (!meshesByVertexCount[vertexCount]) {
+      meshesByVertexCount[vertexCount] = [];
+    }
+    meshesByVertexCount[vertexCount].push(mesh);
+  }
 
+  let totalMeshesCount = 0;
   scene.traverse(object => {
     if (object instanceof THREE.Mesh) {
-      meshes.push(object);
+      registerMesh(object);
+      totalMeshesCount++;
     }
-  });
-
-  const vertexCounts: { [key: number]: THREE.Mesh[] } = {};
-
-  meshes.forEach(mesh => {
-    const vertexCount = (mesh.geometry as THREE.BufferGeometry).getAttribute('position').count;
-    if (!vertexCounts[vertexCount]) {
-      vertexCounts[vertexCount] = [];
-    }
-    vertexCounts[vertexCount].push(mesh);
   });
 
   console.log(
     `
-    Will check ${meshes.length} meshes for duplicates...
+    Will check ${totalMeshesCount} meshes for duplicates...
     `,
-    vertexCounts
+    { meshesByVertexCount }
   );
 
-  const duplicateGroups: THREE.Mesh[][] = [];
-  
-  let ii = 0;
-  Object.keys(vertexCounts).forEach(vertexCountKey => {
-    const similarMeshes = vertexCounts[parseInt(vertexCountKey, 10)];
-    if (similarMeshes.length > 1) {
-      for (let i = 0; i < similarMeshes.length; i++) {
-        for (let j = i + 1; j < similarMeshes.length; j++) {
-          const meshA = similarMeshes[i];
-          const meshB = similarMeshes[j];
-          const verticesA = (meshA.geometry as THREE.BufferGeometry).getAttribute('position').array;
-          const verticesB = (meshB.geometry as THREE.BufferGeometry).getAttribute('position').array;
+  function compareVertices(verticesA: THREE.TypedArray, verticesB: THREE.TypedArray) {
+    return verticesA.length === verticesB.length;
+    return verticesA.every((val, index) => val === verticesB[index]);
+  }
 
-          // Compare vertices assuming they're in the same order
-          const areVerticesEqual = verticesA.every((val, index) => val === verticesB[index]);
-          if (areVerticesEqual) {
-            if (!duplicateGroups.find(group => group.includes(meshA))) {
-              duplicateGroups.push([meshA, meshB]);
-            } else {
-              const group = duplicateGroups.find(group => group.includes(meshA));
-              group?.push(meshB);
-            }
+  // const duplicateGroups: THREE.Mesh[][] = [];
+  const duplicateGroups: { sample: THREE.Mesh; duplicates: THREE.Mesh[]; vertexCount: number }[] =
+    [];
+  function addMeshToDuplicateGroups(mesh: THREE.Mesh, vertexCount: number) {
+    for (const group of duplicateGroups) {
+      if (group.vertexCount !== vertexCount) continue;
 
-            console.log(`Meshes "${meshA.name}" and "${meshB.name}" have identical geometry.`, ii++);
-            if (ii > 400) return console.log('Stopping at 400 duplicates');
-          }
-        }
+      const sampleGeometry = group.sample.geometry as THREE.BufferGeometry;
+      const sampleVertices = sampleGeometry.getAttribute('position').array;
+
+      const meshGeometry = mesh.geometry as THREE.BufferGeometry;
+      const meshVertices = meshGeometry.getAttribute('position').array;
+
+      const areVerticesEqual = compareVertices(sampleVertices, meshVertices);
+      if (areVerticesEqual) {
+        group.duplicates.push(mesh);
+        return;
       }
     }
-  });
+
+    console.log(`Found a new duplicate group with ${vertexCount} vertices.`);
+    duplicateGroups.push({ sample: mesh, duplicates: [], vertexCount });
+  }
+
+  for (const vertexCountString in meshesByVertexCount) {
+    console.log(`Checking meshes with ${vertexCountString} vertices...`);
+
+    const vertexCount = parseInt(vertexCountString);
+
+    const similarMeshes = meshesByVertexCount[vertexCount];
+    const similarMeshesCount = similarMeshes.length;
+    if (similarMeshesCount <= 1) {
+      continue;
+    }
+
+    for (let i = 0; i < similarMeshesCount; i++) {
+      const mesh = similarMeshes[i];
+      addMeshToDuplicateGroups(mesh, vertexCount);
+    }
+  }
+
+  for (const group of duplicateGroups) {
+    if (group.duplicates.length === 0) {
+      duplicateGroups.splice(duplicateGroups.indexOf(group), 1);
+    }
+  }
+
+  console.log({ duplicateGroups });
+
+  // let ii = 0;
+  // for (const similarMeshes of Object.values(vertexCounts)) {
+  //   if (similarMeshes.length > 1) {
+  //     for (let i = 0; i < similarMeshes.length; i++) {
+  //       for (let j = i + 1; j < similarMeshes.length; j++) {
+  //         const meshA = similarMeshes[i];
+  //         const meshB = similarMeshes[j];
+  //         const verticesA = (meshA.geometry as THREE.BufferGeometry).getAttribute('position').array;
+  //         const verticesB = (meshB.geometry as THREE.BufferGeometry).getAttribute('position').array;
+
+  //         // Compare vertices assuming they're in the same order
+  //         const areVerticesEqual = verticesA.every((val, index) => val === verticesB[index]);
+  //         if (areVerticesEqual) {
+  //           if (!duplicateGroups.find(group => group.includes(meshA))) {
+  //             duplicateGroups.push([meshA, meshB]);
+  //           } else {
+  //             const group = duplicateGroups.find(group => group.includes(meshA));
+  //             group?.push(meshB);
+  //           }
+
+  //           // console.log(
+  //           //   `Meshes "${meshA.name}" and "${meshB.name}" have identical geometry.`,
+  //           //   ii++
+  //           // );
+  //           // if (ii > 4000) return console.log('Stopping at 4000 duplicates');
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   return duplicateGroups;
 }
@@ -83,21 +137,32 @@ function createInstancedMesh(
 }
 
 export function optimizeScene(scene: THREE.Group): void {
-  const duplicateGroups = findDuplicateGeometries(scene);
+  const duplicateGroups = findDuplicateGeometries(scene) ?? [];
 
   duplicateGroups.forEach(group => {
+    const { sample, duplicates } = group;
+    const allMeshes = [sample, ...duplicates];
+
     // Assuming all meshes in the group share the same material.
     // If not, you'll need to handle this differently.
-    const material = group[0].material as THREE.Material;
-    const geometry = group[0].geometry as THREE.BufferGeometry;
+    const material = sample.material as THREE.Material;
+    const geometry = sample.geometry as THREE.BufferGeometry;
 
     // Create an InstancedMesh from the group of duplicate meshes
-    const instancedMesh = createInstancedMesh(geometry, material, group);
+    const instancedMesh = createInstancedMesh(geometry, material, allMeshes);
 
     // Remove the original meshes from the scene and add the InstancedMesh
-    group.forEach(mesh => {
-      scene.remove(mesh);
-    });
+    allMeshes.forEach(mesh => scene.remove(mesh));
+    for (const duplicate of duplicates) {
+      duplicate.geometry.dispose();
+
+      const materials = Array.isArray(duplicate.material)
+        ? duplicate.material
+        : [duplicate.material];
+      for (const material of materials) {
+        material.dispose();
+      }
+    }
 
     scene.add(instancedMesh);
   });

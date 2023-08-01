@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { findDuplicateGeometries } from '../utils/findDuplicates';
+import { findDuplicateGeometries, optimizeScene } from '../utils/findDuplicates';
 
 type ModelProps = {
   url: string;
@@ -41,7 +41,10 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       camera.position.x += 0.1 * size.length(); //Move camera to some distance
       camera.lookAt(center);
 
-      findDuplicateGeometries(gltf.scene);
+      // findDuplicateGeometries(gltf.scene);
+      optimizeScene(gltf.scene);
+
+      console.log('Done optimizing model');
     });
   }, [url, camera]);
 
