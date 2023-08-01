@@ -2,9 +2,23 @@ import * as THREE from 'three';
 import { Mesh, Object3D, Scene } from 'three';
 import { BufferGeometry, Matrix4, MeshBasicMaterial } from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import { DirectionalLight } from 'three';
+
+// const defaultMaterial = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
+const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f030 });
+
+export function addSingleLight(scene: Object3D): void {
+  // Create a directional light
+  const light = new DirectionalLight(0xffffff, 1);
+
+  // Set the light's position
+  light.position.set(0, 1, 0); // light comes from above, y = 1
+
+  // Add the light to your scene
+  scene.add(light);
+}
 
 export function updateProperties(scene: Object3D): void {
-  const material = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
 
   scene.traverse(object => {
     if (object instanceof THREE.Mesh) {
@@ -12,7 +26,7 @@ export function updateProperties(scene: Object3D): void {
 
       const prevMaterial = mesh.material as THREE.Material;
       prevMaterial.dispose();
-      mesh.material = material;
+      mesh.material = defaultMaterial;
     }
 
     object.frustumCulled = false;
@@ -42,6 +56,11 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
   // Create an array to hold the geometries to merge
   const geometries: BufferGeometry[] = [];
 
+  let meshCount = 0;
+  let objectCount = 0;
+
+  const mergedMeshes: Mesh[] = [];
+
   scene.traverse(node => {
     if (node instanceof Mesh && node.geometry instanceof BufferGeometry) {
       // Apply the world matrix to the geometry
@@ -50,22 +69,34 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
 
       // Add the geometry to the array
       geometries.push(clonedGeometry);
+      meshCount++;
+
+      // Merge the geometries every 10000 meshes
+      if (meshCount === 10000) {
+        const mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries);
+        const mergedMesh = new Mesh(mergedGeometry, defaultMaterial);
+        mergedMesh.name = `MergedObject${objectCount++}`;
+
+        // Clear the geometries array and reset the mesh count
+        geometries.length = 0;
+        meshCount = 0;
+
+        mergedMeshes.push(mergedMesh);
+      }
     }
   });
 
-  // Merge the geometries
-  const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
+  // Merge any remaining geometries
+  if (geometries.length > 0) {
+    const mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries);
+    const mergedMesh = new Mesh(mergedGeometry, defaultMaterial);
+    mergedMesh.name = `MergedObject${objectCount++}`;
 
-  // Create a new mesh with the merged geometry and a basic material
-  const mergedMesh = new Mesh(mergedGeometry, new MeshBasicMaterial({ color: 0x00ff00 }));
-
-  // Clear the scene
-  while (scene.children.length > 0) {
-    scene.remove(scene.children[0]);
+    mergedMeshes.push(mergedMesh);
   }
 
-  // Add the merged mesh to the scene
-  scene.add(mergedMesh);
+  scene.children = [];
+  scene.add(...mergedMeshes);
 }
 
 export function findDuplicateGeometries(scene: THREE.Group) {

@@ -3,8 +3,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { findDuplicateGeometries, flattenHierarchy, mergeGeometriesInScene, optimizeScene, updateProperties } from '../utils/findDuplicates';
+import {
+  addSingleLight,
+  findDuplicateGeometries,
+  flattenHierarchy,
+  mergeGeometriesInScene,
+  optimizeScene,
+  updateProperties,
+} from '../utils/findDuplicates';
 import { OrbitControls } from 'three-stdlib';
+import { saveGLB } from '../utils/saveGLB';
 
 type ModelProps = {
   url: string;
@@ -57,6 +65,9 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       mergeGeometriesInScene(gltf.scene);
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);
+
+      addSingleLight(gltf.scene);
+      Object.assign(window, { saveGLB: () => saveGLB(gltf.scene) });
 
       {
         const s = new THREE.Box3().setFromObject(gltf.scene);
