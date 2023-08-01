@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { Mesh, Object3D, Scene } from 'three';
+import { BufferGeometry, Matrix4, MeshBasicMaterial } from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 export function updateProperties(scene: Object3D): void {
   const material = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
 
-  const meshes: Mesh[] = [];
   scene.traverse(object => {
     if (object instanceof THREE.Mesh) {
       const mesh = object;
@@ -12,19 +13,11 @@ export function updateProperties(scene: Object3D): void {
       const prevMaterial = mesh.material as THREE.Material;
       prevMaterial.dispose();
       mesh.material = material;
-
-      // mesh.frustumCulled = false;
-      mesh.matrixAutoUpdate = false;
     }
+
+    object.frustumCulled = false;
+    object.matrixAutoUpdate = false;
   });
-
-  const group = new THREE.Group();
-  for (const mesh of meshes) {
-    group.add(mesh);
-  }
-
-  scene.add(group);
-  scene.updateWorldMatrix(true, true);
 }
 
 export function flattenHierarchy(scene: Object3D): void {
@@ -40,8 +33,39 @@ export function flattenHierarchy(scene: Object3D): void {
     group.add(mesh);
   }
 
+  scene.children = [];
   scene.add(group);
   scene.updateWorldMatrix(true, true);
+}
+
+export function mergeGeometriesInScene(scene: THREE.Group): void {
+  // Create an array to hold the geometries to merge
+  const geometries: BufferGeometry[] = [];
+
+  scene.traverse(node => {
+    if (node instanceof Mesh && node.geometry instanceof BufferGeometry) {
+      // Apply the world matrix to the geometry
+      const clonedGeometry = node.geometry.clone();
+      clonedGeometry.applyMatrix4(node.matrixWorld);
+
+      // Add the geometry to the array
+      geometries.push(clonedGeometry);
+    }
+  });
+
+  // Merge the geometries
+  const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
+
+  // Create a new mesh with the merged geometry and a basic material
+  const mergedMesh = new Mesh(mergedGeometry, new MeshBasicMaterial({ color: 0x00ff00 }));
+
+  // Clear the scene
+  while (scene.children.length > 0) {
+    scene.remove(scene.children[0]);
+  }
+
+  // Add the merged mesh to the scene
+  scene.add(mergedMesh);
 }
 
 export function findDuplicateGeometries(scene: THREE.Group) {

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { findDuplicateGeometries, flattenHierarchy, optimizeScene, updateProperties } from '../utils/findDuplicates';
+import { findDuplicateGeometries, flattenHierarchy, mergeGeometriesInScene, optimizeScene, updateProperties } from '../utils/findDuplicates';
 import { OrbitControls } from 'three-stdlib';
 
 type ModelProps = {
@@ -54,8 +54,9 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         // controls.update();
       }
 
-      updateProperties(gltf.scene);
-      flattenHierarchy(gltf.scene);
+      mergeGeometriesInScene(gltf.scene);
+      // updateProperties(gltf.scene);
+      // flattenHierarchy(gltf.scene);
 
       {
         const s = new THREE.Box3().setFromObject(gltf.scene);
