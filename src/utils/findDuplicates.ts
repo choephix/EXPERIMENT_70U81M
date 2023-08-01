@@ -1,25 +1,28 @@
 import * as THREE from 'three';
-import { Mesh, Object3D, Scene } from 'three';
-import { BufferGeometry, Matrix4, MeshBasicMaterial } from 'three';
-import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import { Mesh, Object3D } from 'three';
+import { BufferGeometry } from 'three';
 import { DirectionalLight } from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 // const defaultMaterial = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
-const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f030 });
+// const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f030 });
+const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0x909090 });
 
 export function addSingleLight(scene: Object3D): void {
-  // Create a directional light
-  const light = new DirectionalLight(0xffffff, 1);
+  {
+    const light = new DirectionalLight(0xffffff, 3);
+    light.position.set(1, 1, 1); // light comes from above, y = 1
+    scene.add(light);
+  }
 
-  // Set the light's position
-  light.position.set(0, 1, 0); // light comes from above, y = 1
-
-  // Add the light to your scene
-  scene.add(light);
+  {
+    const light = new DirectionalLight(0x0000ff, 3);
+    light.position.set(-1, -1, -1); // light comes from above, y = 1
+    scene.add(light);
+  }
 }
 
 export function updateProperties(scene: Object3D): void {
-
   scene.traverse(object => {
     if (object instanceof THREE.Mesh) {
       const mesh = object;

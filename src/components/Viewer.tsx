@@ -1,24 +1,14 @@
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { Button } from 'antd';
 import { useRef, useState } from 'react';
 import Dropzone from './Dropzone';
 import Scene from './Scene';
 import { OrbitControls } from '@react-three/drei';
 
-const Viewer = () => {
-  const [url, setUrl] = useState<string>('');
+const Controls = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { invalidate } = useThree(); // Get the `invalidate` function from `useThree` hook
   const controlsRef = useRef<any>(null);
-
-  const handleDrop = (file: File) => {
-    setUrl(URL.createObjectURL(file));
-  };
-
-  const handleClear = () => {
-    setUrl('');
-    URL.revokeObjectURL(url);
-  };
 
   const handleStart = () => {
     setIsDragging(true);
@@ -28,12 +18,40 @@ const Viewer = () => {
     setIsDragging(false);
   };
 
-  const handleZoom = () => {
+  const handleChange = () => {
+    invalidate(); // Force a re-render
+
     if (!controlsRef.current) return;
-    
+
     const distance = controlsRef.current?.getDistance() || 0;
     const zoomSpeed = distance > 10 ? 1 : distance / 200;
     controlsRef.current.zoomSpeed = zoomSpeed;
+  };
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      dampingFactor={0.5}
+      enableZoom
+      panSpeed={0.15}
+      onStart={handleStart}
+      onEnd={handleEnd}
+      onChange={handleChange} // Use the `handleChange` function here
+    />
+  );
+};
+
+const Viewer = () => {
+  const [url, setUrl] = useState<string>('');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const handleDrop = (file: File) => {
+    setUrl(URL.createObjectURL(file));
+  };
+
+  const handleClear = () => {
+    setUrl('');
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -48,24 +66,18 @@ const Viewer = () => {
 
           <Canvas
             style={{ width: '100%', height: '100%' }}
-            dpr={isDragging ? 0.5 : 1}
+            // dpr={isDragging ? 0.5 : 1}
             ref={canvasRef}
             gl={{
               // antialias: !isDragging,
-              antialias: false,
+              // antialias: false,
+              antialias: true,
               powerPreference: 'high-performance',
               precision: 'lowp', // Can be "highp", "mediump", "lowp"
             }}
+            frameloop='demand' // Disable automatic rendering
           >
-            <OrbitControls //
-              ref={controlsRef}
-              dampingFactor={0.5}
-              enableZoom
-              panSpeed={0.15}
-              onStart={handleStart}
-              onEnd={handleEnd}
-              onChange={handleZoom}
-            />
+            <Controls />
             <Scene url={url} />
           </Canvas>
         </>
