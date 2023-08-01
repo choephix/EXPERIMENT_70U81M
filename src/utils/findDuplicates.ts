@@ -4,7 +4,11 @@ import { Mesh, Object3D, BufferGeometry } from 'three';
 
 // const defaultMaterial = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
 // const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f030 });
-const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xc0c0c0 });
+const defaultMaterials = [
+  new THREE.MeshLambertMaterial({ color: 0x6090c0 }),
+  new THREE.MeshLambertMaterial({ color: 0xc06090 }),
+  new THREE.MeshLambertMaterial({ color: 0xc0c0c0 }),
+];
 
 export function updateProperties(scene: Object3D): void {
   scene.traverse(object => {
@@ -13,7 +17,7 @@ export function updateProperties(scene: Object3D): void {
 
       const prevMaterial = mesh.material as THREE.Material;
       prevMaterial.dispose();
-      mesh.material = defaultMaterial;
+      mesh.material = defaultMaterials[0];
     }
 
     object.frustumCulled = false;
@@ -40,60 +44,73 @@ export function flattenHierarchy(scene: Object3D): void {
 }
 
 export function mergeGeometriesInScene(scene: THREE.Group): void {
-  // Create an array to hold the geometries to merge
-  const geometries: BufferGeometry[] = [];
+  type ProperMesh = Mesh & { geometry: BufferGeometry };
+  const originalMeshGroups: ProperMesh[][] = [[], [], []];
 
-  let meshCount = 0;
-  let objectCount = 0;
+  scene.traverse(mesh => {
+    if (mesh instanceof Mesh && mesh.geometry instanceof BufferGeometry) {
+      mesh.geometry.computeBoundingBox();
+      const box = mesh.geometry.boundingBox!;
+      const boxSize = box.getSize(new THREE.Vector3()).length();
+      mesh.userData.boxSize = boxSize;
 
-  const mergedMeshes: Mesh[] = [];
-
-  const metrics = [] as any[];
-
-  scene.traverse(node => {
-    if (node instanceof Mesh && node.geometry instanceof BufferGeometry) {
-      // Apply the world matrix to the geometry
-      const clonedGeometry = node.geometry.clone();
-      clonedGeometry.applyMatrix4(node.matrixWorld);
-
-      node.geometry.computeBoundingBox();
-      const box = node.geometry.boundingBox!;
-      const size = box.getSize(new THREE.Vector3()).length();
-      const skip = size < .05;
-
-      // Add the geometry to the array
-      if (!skip) {
-        geometries.push(clonedGeometry);
-        meshCount++;
-      }
-
-      metrics.push(size);
-
-      // Merge the geometries every 10000 meshes
-      if (meshCount === 10000) {
-        const mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries);
-        const mergedMesh = new Mesh(mergedGeometry, defaultMaterial);
-        mergedMesh.name = `MergedObject${objectCount++}`;
-
-        // Clear the geometries array and reset the mesh count
-        geometries.length = 0;
-        meshCount = 0;
-
-        mergedMeshes.push(mergedMesh);
+      if (boxSize < 0.025) {
+        originalMeshGroups[0].push(mesh);
+      } else if (boxSize < 0.05) {
+        originalMeshGroups[1].push(mesh);
+      } else {
+        originalMeshGroups[2].push(mesh);
       }
     }
   });
 
-  console.log(metrics);
+  const mergedMeshes: ProperMesh[] = [];
+  function populateMergedMeshes(
+    meshes: ProperMesh[],
+    material: THREE.Material,
+    smallFlag: boolean
+  ) {
+    const geometriesMaxCount = 10000;
+    const geometries: BufferGeometry[] = [];
 
-  // Merge any remaining geometries
-  if (geometries.length > 0) {
-    const mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries);
-    const mergedMesh = new Mesh(mergedGeometry, defaultMaterial);
-    mergedMesh.name = `MergedObject${objectCount++}`;
+    function commitGeometries() {
+      if (geometries.length <= 0) {
+        return;
+      }
 
-    mergedMeshes.push(mergedMesh);
+      const mergedGeometry = BufferGeometryUtils.mergeGeometries([...geometries]);
+      const mergedMesh = new Mesh(mergedGeometry, material);
+      mergedMesh.name = `MergedObject${mergedMeshes.length}`;
+      mergedMesh.userData.isSmall = smallFlag;
+      mergedMeshes.push(mergedMesh);
+
+      mergedMesh.frustumCulled = false;
+      mergedMesh.matrixAutoUpdate = false;
+
+      geometries.length = 0;
+    }
+
+    for (const mesh of meshes) {
+      const clonedGeometry = mesh.geometry.clone();
+      clonedGeometry.applyMatrix4(mesh.matrixWorld);
+
+      geometries.push(clonedGeometry);
+
+      if (geometries.length >= geometriesMaxCount) {
+        commitGeometries();
+      }
+    }
+
+    commitGeometries();
   }
+
+  for (let i = 0; i < originalMeshGroups.length; i++) {
+    const material = defaultMaterials[i];
+    const meshes = originalMeshGroups[i];
+    populateMergedMeshes(meshes, material, i === 0);
+  }
+
+  console.log({ mergedMeshes }, originalMeshGroups);
 
   scene.children = [];
   scene.add(...mergedMeshes);

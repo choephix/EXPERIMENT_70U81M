@@ -62,6 +62,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       }
 
       mergeGeometriesInScene(gltf.scene);
+
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);
 
