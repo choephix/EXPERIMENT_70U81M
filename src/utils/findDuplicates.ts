@@ -2,29 +2,6 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 import * as THREE from 'three';
 import { Mesh, Object3D, BufferGeometry } from 'three';
 
-// const defaultMaterial = new THREE.MeshBasicMaterial({ color: 0xf0f030 });
-// const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f030 });
-const defaultMaterials = [
-  new THREE.MeshLambertMaterial({ color: 0x6090c0 }),
-  new THREE.MeshLambertMaterial({ color: 0xc06090 }),
-  new THREE.MeshLambertMaterial({ color: 0xc0c0c0 }),
-];
-
-export function updateProperties(scene: Object3D): void {
-  scene.traverse(object => {
-    if (object instanceof THREE.Mesh) {
-      const mesh = object;
-
-      const prevMaterial = mesh.material as THREE.Material;
-      prevMaterial.dispose();
-      mesh.material = defaultMaterials[0];
-    }
-
-    object.frustumCulled = false;
-    object.matrixAutoUpdate = false;
-  });
-}
-
 export function flattenHierarchy(scene: Object3D): void {
   const meshes: Mesh[] = [];
   scene.traverse(object => {
@@ -43,7 +20,15 @@ export function flattenHierarchy(scene: Object3D): void {
   scene.updateWorldMatrix(true, true);
 }
 
+const uuidFromColorMap = {} as Record<number, string>;
+
 export function mergeGeometriesInScene(scene: THREE.Group): void {
+  const defaultMaterials = [
+    new THREE.MeshLambertMaterial({ color: 0x6090c0, vertexColors: false }),
+    new THREE.MeshLambertMaterial({ color: 0xc06090, vertexColors: false }),
+    new THREE.MeshLambertMaterial({ color: 0xc0c0c0, vertexColors: false }),
+  ];
+
   type ProperMesh = Mesh & { geometry: BufferGeometry };
   const originalMeshGroups: ProperMesh[][] = [[], [], []];
 
@@ -64,6 +49,8 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
     }
   });
 
+  let uuidIndexCounter = 0;
+
   const mergedMeshes: ProperMesh[] = [];
   function populateMergedMeshes(
     meshes: ProperMesh[],
@@ -78,21 +65,33 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
         return;
       }
 
-      const mergedGeometry = BufferGeometryUtils.mergeGeometries([...geometries]);
+      const mergedGeometry = BufferGeometryUtils.mergeGeometries([...geometries], false);
+      mergedGeometry.deleteAttribute('uv');
+    
       const mergedMesh = new Mesh(mergedGeometry, material);
       mergedMesh.name = `MergedObject${mergedMeshes.length}`;
       mergedMesh.userData.isSmall = smallFlag;
       mergedMeshes.push(mergedMesh);
 
+      mergedMesh.uuid;
+
       mergedMesh.frustumCulled = false;
       mergedMesh.matrixAutoUpdate = false;
 
       geometries.length = 0;
+
+      console.log(mergedGeometry, mergedMesh);
     }
 
     for (const mesh of meshes) {
+      // Counter starts from 1 to avoid black color
+      uuidIndexCounter++;
+
       const clonedGeometry = mesh.geometry.clone();
       clonedGeometry.applyMatrix4(mesh.matrixWorld);
+
+      clonedGeometry.setAttribute('oindex', new THREE.Float32BufferAttribute(uuidIndexCounter, 1));
+      uuidFromColorMap[uuidIndexCounter] = mesh.uuid;
 
       geometries.push(clonedGeometry);
 
@@ -114,6 +113,43 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
 
   scene.children = [];
   scene.add(...mergedMeshes);
+}
+
+export function testIdempotency(
+  canvas: HTMLCanvasElement,
+  camera: THREE.Camera,
+  scene: THREE.Group
+) {
+  console.log('Testing idempotency...', { canvas, camera, scene });
+
+  const raycaster = new THREE.Raycaster();
+
+  // And then when you handle a click event...
+  canvas.addEventListener('click', event => {
+    // Normalize mouse position to [-1, 1]
+    const mouse = new THREE.Vector2(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      -(event.clientY / window.innerHeight) * 2 + 1
+    );
+
+    // Update the picking ray with the camera and mouse position
+    raycaster.setFromCamera(mouse, camera);
+
+    // Calculate objects intersecting the picking ray
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    if (intersects.length > 0) {
+      // Assuming you have your vertex colors in the face
+      const color = intersects[0].faceIndex!;
+
+      // Look up the original mesh ID using the color.
+
+      const originalMeshID = uuidFromColorMap[color];
+
+      // Do something with the original mesh ID...
+      console.log('Clicked, intersected', { face: intersects[0].face, intersects, originalMeshID });
+    }
+  });
 }
 
 export function findDuplicateGeometries(scene: THREE.Group) {

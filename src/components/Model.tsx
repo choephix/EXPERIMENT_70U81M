@@ -8,7 +8,7 @@ import {
   flattenHierarchy,
   mergeGeometriesInScene,
   optimizeScene,
-  updateProperties,
+  testIdempotency,
 } from '../utils/findDuplicates';
 import { OrbitControls } from 'three-stdlib';
 import { saveGLB } from '../utils/saveGLB';
@@ -27,7 +27,9 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   const [model, setModel] = useState<THREE.Object3D | null>(null);
   const ref = useRef<THREE.Object3D | null>(null);
 
-  const { controls } = useThree();
+  const { gl, controls } = useThree();
+
+  const canvas = gl.getContext().canvas as HTMLCanvasElement;
 
   useEffect(() => {
     if (!url) return;
@@ -62,6 +64,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       }
 
       mergeGeometriesInScene(gltf.scene);
+      testIdempotency(canvas, camera, gltf.scene);
 
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);
