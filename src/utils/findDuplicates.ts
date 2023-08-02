@@ -113,6 +113,15 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
 
   scene.children = [];
   scene.add(...mergedMeshes);
+
+  /**
+   * TODO
+   * 
+   * [ ] Test oindex -> uuid mapping
+   * [ ] Shader to colorize selected oindex/uuid
+   * [ ] Move this shit server-side
+   * 
+   */
 }
 
 export function testIdempotency(
