@@ -40,11 +40,11 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
     // Save original materials so that we can non-destructively assign picking materials
     const originalMaterials = new Map<THREE.Mesh, THREE.Material>();
-    function getColorAtPoint(model: THREE.Group, x: number, y: number) {
-      const renderer = new THREE.WebGLRenderer();
+    const renderer = new THREE.WebGLRenderer();
+    const pickingTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+    renderer.setRenderTarget(pickingTarget);
 
-      const pickingTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-      renderer.setRenderTarget(pickingTarget);
+    function getColorAtPoint(model: THREE.Group, x: number, y: number) {
 
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
@@ -58,9 +58,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
             }`,
             fragmentShader: `
             precision highp float;
-
             uniform vec3 pickingColor;
-
             void main() {
               gl_FragColor = vec4(pickingColor, 1.0);
             }`,
@@ -69,10 +67,8 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         }
       });
 
-      // Render picking scene to texture
       renderer.render(model, camera); // Assuming scene and camera are defined in your scope
 
-      // Read pixel under mouse cursor
       const pixelBuffer = new Uint8Array(4);
       renderer.readRenderTargetPixels(
         pickingTarget,
@@ -83,18 +79,13 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         pixelBuffer
       );
 
-      // Map color
       const result = [pixelBuffer[0] / 255, pixelBuffer[1] / 255, pixelBuffer[2] / 255] as const;
 
-      // Restore original materials
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
           child.material = originalMaterials.get(child);
         }
       });
-
-      // Cleanup
-      pickingTarget.dispose();
 
       return result;
     }
@@ -110,7 +101,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
     return () => {
       canvas.removeEventListener('click', onDocumentMouseDown);
-      // pickingTarget.dispose();
+      pickingTarget.dispose();
     };
   }, [model]);
 
