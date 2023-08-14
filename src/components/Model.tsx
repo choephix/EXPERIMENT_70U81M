@@ -38,18 +38,15 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   useEffect(() => {
     if (!model) return;
 
+    const fakeCanvas = document.createElement('canvas');
+
+    // Save original materials so that we can non-destructively assign picking materials
+    const originalMaterials = new Map<THREE.Mesh, THREE.Material>();
     function getColorAtPoint(model: THREE.Group, x: number, y: number) {
-      // Check if the canvasRef is available
-      if (!canvas) {
-        console.error('Canvas ref is not available');
-        return new Color(0x000000);
-      }
+      const renderer = new THREE.WebGLRenderer({ canvas: fakeCanvas });
 
-      const renderer = new THREE.WebGLRenderer({ canvas });
       const pickingTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-
-      // Save original materials and assign picking materials
-      const originalMaterials = new Map<THREE.Mesh, THREE.Material>();
+      renderer.setRenderTarget(pickingTarget);
 
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
@@ -75,7 +72,6 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       });
 
       // Render picking scene to texture
-      renderer.setRenderTarget(pickingTarget);
       renderer.render(model, camera); // Assuming scene and camera are defined in your scope
 
       // Read pixel under mouse cursor
@@ -116,6 +112,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
     return () => {
       canvas.removeEventListener('click', onDocumentMouseDown);
+      // pickingTarget.dispose();
     };
   }, [model]);
 
