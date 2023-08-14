@@ -38,12 +38,10 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   useEffect(() => {
     if (!model) return;
 
-    const fakeCanvas = document.createElement('canvas');
-
     // Save original materials so that we can non-destructively assign picking materials
     const originalMaterials = new Map<THREE.Mesh, THREE.Material>();
     function getColorAtPoint(model: THREE.Group, x: number, y: number) {
-      const renderer = new THREE.WebGLRenderer({ canvas: fakeCanvas });
+      const renderer = new THREE.WebGLRenderer();
 
       const pickingTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
       renderer.setRenderTarget(pickingTarget);
