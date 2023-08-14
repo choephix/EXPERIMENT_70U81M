@@ -24,11 +24,12 @@ export function flattenHierarchy(scene: Object3D): void {
 
 const uuidFromColorMap = {} as Record<number, string>;
 
-export function mergeGeometriesInScene(scene: THREE.Group): void {
+export function mergeGeometriesInScene(scene: THREE.Group) {
+  const useVertexColors = false;
   const defaultMaterials = [
-    new THREE.MeshLambertMaterial({ color: 0x6090c0, vertexColors: true }),
-    new THREE.MeshLambertMaterial({ color: 0xc06090, vertexColors: true }),
-    new THREE.MeshLambertMaterial({ color: 0xc0c0c0, vertexColors: true }),
+    new THREE.MeshLambertMaterial({ color: 0x6090c0, vertexColors: useVertexColors }),
+    new THREE.MeshLambertMaterial({ color: 0xc06090, vertexColors: useVertexColors }),
+    new THREE.MeshLambertMaterial({ color: 0xc0c0c0, vertexColors: useVertexColors }),
   ];
 
   type ProperMesh = Mesh & { geometry: BufferGeometry };
@@ -110,10 +111,25 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
     populateMergedMeshes(meshes, material, i === 0);
   }
 
+  // for (const mesh of mergedMeshes) {
+  //   for (const group of mesh.geometry.groups) {
+  //     group.materialIndex = mesh.userData.isSmall ? 0 : 1;
+  //   }
+  //   mesh.material = defaultMaterials;
+  // }
+
   console.log({ mergedMeshes }, originalMeshGroups);
 
-  scene.children = [];
-  scene.add(...mergedMeshes);
+  const newScene = new THREE.Group();
+  newScene.matrix.copy(scene.matrix);
+  newScene.add(...mergedMeshes);
+  newScene.rotateX(-0.5 * Math.PI); // Rotate to compensate for flipped Z and Y axis
+  newScene.updateMatrixWorld(true);
+  return newScene;
+
+  // scene.children = [];
+  // scene.add(...mergedMeshes);
+  // return scene;
 
   /**
    * TODO

@@ -42,39 +42,37 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
     loader.load(url, gltf => {
       console.log('Loaded gltf model', gltf);
 
-      const model = gltf.scene;
-
-      function getModelCenterAndSize(model: THREE.Object3D) {
-        const bbox = new THREE.Box3().setFromObject(model);
-        const center = bbox.getCenter(new THREE.Vector3());
-        const size = bbox.getSize(new THREE.Vector3());
-        return [center, size] as const;
-      }
-
-      setModel(gltf.scene);
-
-      gltf.scene.userData.url = url;
-
-      const [modelCenter, modelSize] = getModelCenterAndSize(model);
-
-      if (!(controls instanceof OrbitControls)) {
-        console.warn('Controls not instance of OrbitControls', controls);
-      } else {
-        console.warn('Setting controls target to model center', modelCenter);
-        // controls.target.copy(modelCenter);
-        // controls.update();
-      }
-
-      mergeGeometriesInScene(gltf.scene);
       // testIdempotency(canvas, camera, gltf.scene);
 
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);
 
-      Object.assign(window, { saveGLB: () => saveGLB(gltf.scene) });
+      // const model = gltf.scene;
+      const model = mergeGeometriesInScene(gltf.scene);
+
+      model.userData.url = url;
+
+      setModel(model);
+
+      // function getModelCenterAndSize(model: THREE.Object3D) {
+      //   const bbox = new THREE.Box3().setFromObject(model);
+      //   const center = bbox.getCenter(new THREE.Vector3());
+      //   const size = bbox.getSize(new THREE.Vector3());
+      //   return [center, size] as const;
+      // }
+      // const [modelCenter, modelSize] = getModelCenterAndSize(model);
+      // if (!(controls instanceof OrbitControls)) {
+      //   console.warn('Controls not instance of OrbitControls', controls);
+      // } else {
+      //   console.warn('Setting controls target to model center', modelCenter);
+      //   // controls.target.copy(modelCenter);
+      //   // controls.update();
+      // }
+
+      Object.assign(window, { model, saveGLB: () => saveGLB(model) });
 
       {
-        const s = new THREE.Box3().setFromObject(gltf.scene);
+        const s = new THREE.Box3().setFromObject(model);
         const center = s.getCenter(new THREE.Vector3());
         const size = s.getSize(new THREE.Vector3());
 
@@ -98,7 +96,11 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   return (
     <>
       <ModelOptimizer model={model} camera={camera} />
-      <primitive object={model} ref={ref} />
+      <primitive
+        object={model}
+        ref={ref}
+        // onPointerClick={() => console.log('Clicked model')}
+      />
     </>
   );
 };

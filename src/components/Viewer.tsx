@@ -7,7 +7,7 @@ import { OrbitControls } from '@react-three/drei';
 
 const Controls = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const { invalidate } = useThree(); // Get the `invalidate` function from `useThree` hook
+  const { invalidate, camera } = useThree(); // Get the `invalidate` function from `useThree` hook
   const controlsRef = useRef<any>(null);
 
   const handleStart = () => {
@@ -24,16 +24,20 @@ const Controls = () => {
     if (!controlsRef.current) return;
 
     const distance = controlsRef.current?.getDistance() || 0;
-    const zoomSpeed = distance > 10 ? 1 : distance / 200;
+    // const zoomSpeed = distance > 10 ? 1 : distance / 200;
+    const zoomSpeed = 2;
     controlsRef.current.zoomSpeed = zoomSpeed;
   };
+
+  camera.near = 0.0001;
 
   return (
     <OrbitControls
       ref={controlsRef}
-      dampingFactor={0.5}
       enableZoom
+      dampingFactor={0.5}
       panSpeed={0.15}
+      zoomSpeed={0.5}
       onStart={handleStart}
       onEnd={handleEnd}
       onChange={handleChange} // Use the `handleChange` function here
