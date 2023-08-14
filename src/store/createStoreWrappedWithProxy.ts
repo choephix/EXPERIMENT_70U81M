@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { shallow } from 'zustand/shallow';
 
 import type { StateCreator } from 'zustand';
@@ -6,7 +7,7 @@ import type { StateCreator } from 'zustand';
 export function createStoreWrappedWithProxy<T extends Record<string | symbol, any>>(
   initializer: StateCreator<T>
 ) {
-  const originalMethod = create<T>(initializer);
+  const originalMethod = createWithEqualityFn<T>(initializer, Object.is);
 
   /**
    * Wrapped version of the original useRdsStore function, which solves a performance issue.

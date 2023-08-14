@@ -14,6 +14,8 @@ import { OrbitControls } from 'three-stdlib';
 import { saveGLB } from '../utils/saveGLB';
 import { useGlobalStore } from '../store/useGlobalStore';
 
+import { GPUPicker } from 'three_gpu_picking';
+
 type ModelProps = {
   url: string;
   camera: THREE.Camera;
@@ -26,12 +28,37 @@ loader.setDRACOLoader(dracoLoader);
 
 const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   const { model, setModel } = useGlobalStore();
-  
+
   const ref = useRef<THREE.Object3D | null>(null);
 
   const { gl, controls } = useThree();
 
   const canvas = gl.getContext().canvas as HTMLCanvasElement;
+
+  useEffect(() => {
+    var picker = new GPUPicker(THREE, gl, model, camera);
+    console.log({ picker })
+
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2();
+    function onDocumentMouseDown(ev: any) {
+      console.log('onDocumentMouseDown', ev);
+      var objectId = picker.pick(
+        ev.clientX * window.devicePixelRatio,
+        ev.clientY * window.devicePixelRatio,
+        (obj: any) => {
+          console.log('Clicked object:', obj);
+          return true;
+        }
+      );
+      console.log('objectId', objectId)
+    }
+    canvas.addEventListener('click', onDocumentMouseDown);
+
+    return () => {
+      canvas.removeEventListener('click', onDocumentMouseDown);
+    };
+  }, [model]);
 
   useEffect(() => {
     if (!url) return;
@@ -51,8 +78,6 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       const model = mergeGeometriesInScene(gltf.scene);
 
       model.userData.url = url;
-
-      setModel(model);
 
       // function getModelCenterAndSize(model: THREE.Object3D) {
       //   const bbox = new THREE.Box3().setFromObject(model);
@@ -86,6 +111,8 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       // optimizeScene(gltf.scene);
 
       console.log('Done optimizing model');
+
+      setModel(model);
     });
   }, [url, camera, controls]);
 
