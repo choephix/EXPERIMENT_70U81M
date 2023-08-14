@@ -12,6 +12,7 @@ import {
 } from '../utils/findDuplicates';
 import { OrbitControls } from 'three-stdlib';
 import { saveGLB } from '../utils/saveGLB';
+import { useGlobalStore } from '../store/useGlobalStore';
 
 type ModelProps = {
   url: string;
@@ -24,7 +25,8 @@ dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
 loader.setDRACOLoader(dracoLoader);
 
 const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
-  const [model, setModel] = useState<THREE.Object3D | null>(null);
+  const { model, setModel } = useGlobalStore();
+  
   const ref = useRef<THREE.Object3D | null>(null);
 
   const { gl, controls } = useThree();
@@ -64,7 +66,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       }
 
       mergeGeometriesInScene(gltf.scene);
-      testIdempotency(canvas, camera, gltf.scene);
+      // testIdempotency(canvas, camera, gltf.scene);
 
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);

@@ -2,6 +2,8 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 import * as THREE from 'three';
 import { Mesh, Object3D, BufferGeometry } from 'three';
 
+const geometriesMaxCount = 10000;
+
 export function flattenHierarchy(scene: Object3D): void {
   const meshes: Mesh[] = [];
   scene.traverse(object => {
@@ -24,9 +26,9 @@ const uuidFromColorMap = {} as Record<number, string>;
 
 export function mergeGeometriesInScene(scene: THREE.Group): void {
   const defaultMaterials = [
-    new THREE.MeshLambertMaterial({ color: 0x6090c0, vertexColors: false }),
-    new THREE.MeshLambertMaterial({ color: 0xc06090, vertexColors: false }),
-    new THREE.MeshLambertMaterial({ color: 0xc0c0c0, vertexColors: false }),
+    new THREE.MeshLambertMaterial({ color: 0x6090c0, vertexColors: true }),
+    new THREE.MeshLambertMaterial({ color: 0xc06090, vertexColors: true }),
+    new THREE.MeshLambertMaterial({ color: 0xc0c0c0, vertexColors: true }),
   ];
 
   type ProperMesh = Mesh & { geometry: BufferGeometry };
@@ -57,7 +59,6 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
     material: THREE.Material,
     smallFlag: boolean
   ) {
-    const geometriesMaxCount = 10000;
     const geometries: BufferGeometry[] = [];
 
     function commitGeometries() {
@@ -67,7 +68,7 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
 
       const mergedGeometry = BufferGeometryUtils.mergeGeometries([...geometries], false);
       mergedGeometry.deleteAttribute('uv');
-    
+
       const mergedMesh = new Mesh(mergedGeometry, material);
       mergedMesh.name = `MergedObject${mergedMeshes.length}`;
       mergedMesh.userData.isSmall = smallFlag;
@@ -90,7 +91,7 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
       const clonedGeometry = mesh.geometry.clone();
       clonedGeometry.applyMatrix4(mesh.matrixWorld);
 
-      clonedGeometry.setAttribute('oindex', new THREE.Float32BufferAttribute(uuidIndexCounter, 1));
+      // clonedGeometry.setAttribute('oindex', new THREE.Float32BufferAttribute(uuidIndexCounter, 1));
       uuidFromColorMap[uuidIndexCounter] = mesh.uuid;
 
       geometries.push(clonedGeometry);
@@ -116,11 +117,11 @@ export function mergeGeometriesInScene(scene: THREE.Group): void {
 
   /**
    * TODO
-   * 
+   *
    * [ ] Test oindex -> uuid mapping
    * [ ] Shader to colorize selected oindex/uuid
    * [ ] Move this shit server-side
-   * 
+   *
    */
 }
 
