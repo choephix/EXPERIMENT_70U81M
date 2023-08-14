@@ -14,7 +14,7 @@ import { OrbitControls } from 'three-stdlib';
 import { saveGLB } from '../utils/saveGLB';
 import { useGlobalStore } from '../store/useGlobalStore';
 
-import { GPUPicker } from 'three_gpu_picking';
+import { Color } from 'three';
 
 type ModelProps = {
   url: string;
@@ -36,22 +36,81 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   const canvas = gl.getContext().canvas as HTMLCanvasElement;
 
   useEffect(() => {
-    var picker = new GPUPicker(THREE, gl, model, camera);
-    console.log({ picker })
+    if (!model) return;
 
-    var raycaster = new THREE.Raycaster();
-    var mouse = new THREE.Vector2();
-    function onDocumentMouseDown(ev: any) {
-      console.log('onDocumentMouseDown', ev);
-      var objectId = picker.pick(
-        ev.clientX * window.devicePixelRatio,
-        ev.clientY * window.devicePixelRatio,
-        (obj: any) => {
-          console.log('Clicked object:', obj);
-          return true;
+    function getColorAtPoint(model: THREE.Group, x: number, y: number) {
+      // Check if the canvasRef is available
+      if (!canvas) {
+        console.error('Canvas ref is not available');
+        return new Color(0x000000);
+      }
+
+      const renderer = new THREE.WebGLRenderer({ canvas });
+      const pickingTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+
+      // Save original materials and assign picking materials
+      const originalMaterials = new Map<THREE.Mesh, THREE.Material>();
+
+      model.traverse(child => {
+        if (child instanceof THREE.Mesh) {
+          originalMaterials.set(child, child.material);
+          const uniqueColor = new Color(child.id); // Assuming ID is unique and can be mapped to color
+          child.material = new THREE.ShaderMaterial({
+            vertexShader: `
+            precision highp float;
+            void main() {
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }`,
+            fragmentShader: `
+            precision highp float;
+
+            uniform vec3 pickingColor;
+
+            void main() {
+              gl_FragColor = vec4(pickingColor, 1.0);
+            }`,
+            uniforms: { pickingColor: { value: uniqueColor } },
+          });
         }
+      });
+
+      // Render picking scene to texture
+      renderer.setRenderTarget(pickingTarget);
+      renderer.render(model, camera); // Assuming scene and camera are defined in your scope
+
+      // Read pixel under mouse cursor
+      const pixelBuffer = new Uint8Array(4);
+      renderer.readRenderTargetPixels(
+        pickingTarget,
+        x,
+        pickingTarget.height - y,
+        1,
+        1,
+        pixelBuffer
       );
-      console.log('objectId', objectId)
+
+      // Map color
+      const result = [pixelBuffer[0] / 255, pixelBuffer[1] / 255, pixelBuffer[2] / 255] as const;
+
+      // Restore original materials
+      model.traverse(child => {
+        if (child instanceof THREE.Mesh) {
+          child.material = originalMaterials.get(child);
+        }
+      });
+
+      // Cleanup
+      pickingTarget.dispose();
+
+      return result;
+    }
+
+    function onDocumentMouseDown(ev: any) {
+      const cx = ev.clientX * window.devicePixelRatio;
+      const cy = ev.clientY * window.devicePixelRatio;
+
+      const o = getColorAtPoint(model!, cx, cy);
+      console.log('🚁', o);
     }
     canvas.addEventListener('click', onDocumentMouseDown);
 
