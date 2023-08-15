@@ -2,6 +2,7 @@ import { createStoreWrappedWithProxy } from '../store/createStoreWrappedWithProx
 import type { StateCreator } from 'zustand';
 
 import * as THREE from 'three';
+import { createBoxGrid } from '../debug/createBoxGrid';
 
 type Model = THREE.Group;
 

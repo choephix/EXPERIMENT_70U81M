@@ -60,8 +60,7 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
     }
   });
 
-  // Counter starts from 1 to avoid black color
-  let uuidIndexCounter = 1;
+  let uuidIndexCounter = 0;
 
   const mergedMeshes: ProperMesh[] = [];
   function populateMergedMeshes(
@@ -79,6 +78,26 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
         colors[i] = colorObject.r;
         colors[i + 1] = colorObject.g;
         colors[i + 2] = colorObject.b;
+      }
+
+      return new THREE.BufferAttribute(colors, 3);
+    }
+
+    function convertColorToBufferAttribute2(color: number, vertexCount: number) {
+      const colors = new Float32Array(vertexCount * 3);
+
+      const colorObject255 = {
+        r: (color >> 16) & 0xff,
+        g: (color >> 8) & 0xff,
+        b: color & 0xff,
+      }
+
+      // const colorObject = new THREE.Color(color);
+
+      for (let i = 0; i < colors.length; i += 3) {
+        colors[i] = colorObject255.r;
+        colors[i + 1] = colorObject255.g;
+        colors[i + 2] = colorObject255.b;
       }
 
       return new THREE.BufferAttribute(colors, 3);
@@ -108,6 +127,12 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       return mergedMesh;
     }
 
+    const __boxesCOunt = meshes.length;
+    const a = new Array(__boxesCOunt)
+      .fill(0)
+      .map((_, i) => new THREE.Color().setHSL(i / __boxesCOunt, 1, 0.5).getHex());
+    console.log({ a: a.map(i => `0x${i.toString(16).padStart(6, '0')}`) });
+
     // const idDelta = ~~(0xf0f0f0 / meshes.length);
     const idDelta = 1;
     for (const mesh of meshes) {
@@ -116,17 +141,19 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       const clonedGeometry = mesh.geometry.clone();
       clonedGeometry.applyMatrix4(mesh.matrixWorld);
 
-      const sourceMeshIndexBufferAttribute = convertColorToBufferAttribute(
+      const sourceMeshIndexBufferAttribute = convertColorToBufferAttribute2(
         uuidIndexCounter,
         clonedGeometry.attributes.position.count
       );
       clonedGeometry.setAttribute('sourceMeshIndex', sourceMeshIndexBufferAttribute);
 
-      // const colorBufferAttribute = convertColorToBufferAttribute(
-      //   mesh.userData.color,
-      //   clonedGeometry.attributes.position.count
-      // );
-      // clonedGeometry.setAttribute('color', colorBufferAttribute);
+      const colorBufferAttribute = convertColorToBufferAttribute(
+        // mesh.userData.color,
+        // uuidIndexCounter * 255,
+        a[uuidIndexCounter % a.length],
+        clonedGeometry.attributes.position.count
+      );
+      clonedGeometry.setAttribute('color', colorBufferAttribute);
 
       const __colorObject = new THREE.Color(uuidIndexCounter);
       uuidFromColorMap[uuidIndexCounter] = {
@@ -149,9 +176,12 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
   }
 
   for (let i = 0; i < originalMeshGroups.length; i++) {
+    console.log(`Merging group ${i}...`, originalMeshGroups[i].length);
+
     // const material = defaultMaterials[i];
     const material = Materials.DISPLAY_MATERIAL;
     const meshes = originalMeshGroups[i];
+
     populateMergedMeshes(meshes, material, i === 0);
   }
 

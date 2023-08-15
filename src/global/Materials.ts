@@ -1,12 +1,15 @@
 import { MeshLambertMaterial, ShaderMaterial } from 'three';
 
 export module Materials {
-  export const SOURCE_MATERIAL = new MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+  export const VERTEX_COLOR_MATERIAL = new MeshLambertMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+  });
 
   export const DISPLAY_MATERIAL = new ShaderMaterial({
     uniforms: { selectedSourceMeshIndex: { value: [0, 0, 0] } },
     vertexShader: `
-    precision mediump float;
+    precision highp float;
 
     uniform vec3 selectedSourceMeshIndex;
     
@@ -16,18 +19,18 @@ export module Materials {
     varying vec3 vColor;
     
     bool vec3Equal(vec3 a, vec3 b, float tolerance) {
-      // return length(a - b) < tolerance;
-      return a.z == b.z;
+      return length(a - b) < tolerance;
+      // return a.z == b.z;
     }
     
     void main() {
-      bool selected = vec3Equal(sourceMeshIndex, selectedSourceMeshIndex, .025);
+      bool selected = vec3Equal(sourceMeshIndex / 255.0, selectedSourceMeshIndex, .025);
       vColor = selected ? vec3(0.129, 0.508, 0.822) : vec3(0.8);
 
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
     fragmentShader: `
-    precision mediump float;
+    precision highp float;
 
     varying vec3 vColor;
     
@@ -46,18 +49,18 @@ export module Materials {
    */
   export const PICKING_MATERIAL = new ShaderMaterial({
     vertexShader: `
-    precision mediump float;
-    
+    precision highp float;
+
     attribute vec3 sourceMeshIndex;
 
     varying vec3 vColor;
 
     void main() {
-      vColor = sourceMeshIndex;
+      vColor = sourceMeshIndex / 255.0;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
     fragmentShader: `
-    precision mediump float;
+    precision highp float;
 
     varying vec3 vColor;
 

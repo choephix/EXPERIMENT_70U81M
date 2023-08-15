@@ -9,6 +9,7 @@ import { saveGLB } from '../utils/saveGLB';
 
 import { Color } from 'three';
 import { Materials } from '../global/Materials';
+import { createBoxGrid } from '../debug/createBoxGrid';
 
 type ModelProps = {
   url: string;
@@ -61,13 +62,13 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         1,
         pixelBuffer
       );
-
       const integer = (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | pixelBuffer[2];
+      
+      console.log({ integer, pixelBuffer }, [...pixelBuffer.values()]);;
 
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
-          // child.material = originalMaterials.get(child);
-          child.material = Materials.DISPLAY_MATERIAL;
+          child.material = originalMaterials.get(child);
         }
       });
 
@@ -89,20 +90,28 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       const cy = ev.clientY * window.devicePixelRatio;
 
       const c = getColorAtPoint(scene, cx, cy);
-      if (!c) return;
+      
+      if (!c) {
+        console.log(null)
+        return;
+      }
 
       const hex = `#${c.toString(16).padStart(6, '0')}`;
 
       const info = scene.userData.uuidFromColorMap[c];
 
-      console.log(
-        '🚁',
-        hex,
-        info,
-        `Comparison:\n`,
-        info._c,
-        Materials.DISPLAY_MATERIAL.uniforms.selectedSourceMeshIndex.value
-      );
+      if (info) {
+        console.log(
+          '🚁',
+          hex,
+          info,
+          `Comparison:\n`,
+          info?._c,
+          Materials.DISPLAY_MATERIAL.uniforms.selectedSourceMeshIndex.value
+        );
+      } else {
+        console.log('🚁🔥', hex, info);
+      }
 
       // camera.lookAt(...info.xyz);
     }
@@ -127,6 +136,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);
+      gltf.scene = createBoxGrid();
 
       // const model = gltf.scene;
       const model = mergeGeometriesInScene(gltf.scene);
@@ -203,8 +213,6 @@ const ModelOptimizer: React.FC<ModelOptimizerProps> = ({ model, camera }: ModelO
         const size = bbox.getSize(new THREE.Vector3());
         child.userData.size = [size.x, size.y, size.z];
         child.userData.sizeMax = Math.max(size.x, size.y, size.z);
-
-        // console.log('sizeMax', child.userData.sizeMax);
 
         child.addEventListener('click', () => handleClick(child));
       }
