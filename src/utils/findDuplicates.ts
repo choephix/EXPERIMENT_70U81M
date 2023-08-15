@@ -22,7 +22,13 @@ export function flattenHierarchy(scene: Object3D): void {
   scene.updateWorldMatrix(true, true);
 }
 
-const uuidFromColorMap = {} as Record<number, string>;
+const uuidFromColorMap = {} as Partial<Record<
+  number,
+  {
+    uuid: string;
+    xyz: [number, number, number];
+  }
+>>;
 
 export function mergeGeometriesInScene(scene: THREE.Group) {
   const useVertexColors = true;
@@ -62,22 +68,22 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
   ) {
     const geometries: BufferGeometry[] = [];
 
+    function convertColorToBufferAttribute(color: number, vertexCount: number) {
+      const colors = new Float32Array(vertexCount * 3);
+      const colorObject = new THREE.Color(color);
+
+      for (let i = 0; i < colors.length; i += 3) {
+        colors[i] = colorObject.r;
+        colors[i + 1] = colorObject.g;
+        colors[i + 2] = colorObject.b;
+      }
+
+      return new THREE.BufferAttribute(colors, 3);
+    }
+
     function commitGeometries() {
       if (geometries.length <= 0) {
         return;
-      }
-
-      for (const geometry of geometries) {
-        const colors = new Float32Array(geometry.attributes.position.count * 3);
-        const color = new THREE.Color(Math.random() * 0xffffff);
-
-        for (let i = 0; i < colors.length; i += 3) {
-          colors[i] = color.r;
-          colors[i + 1] = color.g;
-          colors[i + 2] = color.b;
-        }
-
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       }
 
       const mergedGeometry = BufferGeometryUtils.mergeGeometries([...geometries], false);
@@ -98,15 +104,25 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       console.log(mergedGeometry, mergedMesh);
     }
 
+    // const idDelta = ~~(0xf0f0f0 / meshes.length);
+    const idDelta = 1;
     for (const mesh of meshes) {
       // Counter starts from 1 to avoid black color
-      uuidIndexCounter++;
+      uuidIndexCounter += idDelta;
 
       const clonedGeometry = mesh.geometry.clone();
       clonedGeometry.applyMatrix4(mesh.matrixWorld);
 
-      // clonedGeometry.setAttribute('oindex', new THREE.Float32BufferAttribute(uuidIndexCounter, 1));
-      uuidFromColorMap[uuidIndexCounter] = mesh.uuid;
+      const bufferAttribute = convertColorToBufferAttribute(
+        uuidIndexCounter,
+        clonedGeometry.attributes.position.count
+      );
+      clonedGeometry.setAttribute('color', bufferAttribute);
+
+      uuidFromColorMap[uuidIndexCounter] = {
+        uuid: mesh.uuid,
+        xyz: mesh.position.toArray(),
+      };
 
       geometries.push(clonedGeometry);
 
@@ -138,7 +154,12 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
   newScene.add(...mergedMeshes);
   newScene.rotateX(-0.5 * Math.PI); // Rotate to compensate for flipped Z and Y axis
   newScene.updateMatrixWorld(true);
-  return newScene;
+  newScene.userData = {
+    uuidFromColorMap,
+  };
+  return newScene as Omit<THREE.Group, 'userData'> & {
+    userData: { uuidFromColorMap: typeof uuidFromColorMap };
+  };
 
   // scene.children = [];
   // scene.add(...mergedMeshes);

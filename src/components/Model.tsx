@@ -78,7 +78,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         pixelBuffer
       );
 
-      const result = [pixelBuffer[0] / 255, pixelBuffer[1] / 255, pixelBuffer[2] / 255] as const;
+      const integer = (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | pixelBuffer[2];
 
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
@@ -86,15 +86,29 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         }
       });
 
-      return result;
+      if (integer === 0) {
+        return null;
+      }
+
+      return Math.round(integer);
     }
 
     function onDocumentMouseDown(ev: any) {
+      const scene = model! as ReturnType<typeof mergeGeometriesInScene>;
+
       const cx = ev.clientX * window.devicePixelRatio;
       const cy = ev.clientY * window.devicePixelRatio;
 
-      const o = getColorAtPoint(model!, cx, cy);
-      console.log('🚁', o);
+      const c = getColorAtPoint(scene, cx, cy);
+      if (!c) return;
+
+      const hex = `#${c.toString(16).padStart(6, '0')}`;
+
+      const info = scene.userData.uuidFromColorMap[c];
+
+      console.log('🚁', c, hex, info);
+
+      // camera.lookAt(...info.xyz);
     }
     canvas.addEventListener('click', onDocumentMouseDown);
 
@@ -121,7 +135,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       // const model = gltf.scene;
       const model = mergeGeometriesInScene(gltf.scene);
 
-      model.userData.url = url;
+      // model.userData.url = url;
 
       // function getModelCenterAndSize(model: THREE.Object3D) {
       //   const bbox = new THREE.Box3().setFromObject(model);
