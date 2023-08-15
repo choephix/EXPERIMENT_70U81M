@@ -2,6 +2,7 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 import * as THREE from 'three';
 import { Mesh, Object3D, BufferGeometry } from 'three';
 import { Materials } from '../global/Materials';
+import { getBoxCenterAndSize } from './getBoxCenterAndSize';
 
 const geometriesMaxCount = 10000;
 
@@ -163,16 +164,11 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       );
       clonedGeometry.setAttribute('color', colorBufferAttribute);
 
-      //// TODO: This must become the center of the object
-      //// (which is not always the case with local zero)
-      const box = new THREE.Box3().setFromObject(mesh);
-      const center = new THREE.Vector3();
-      const position = box.getCenter(center);
-      const size = box.getSize(new THREE.Vector3()).length();
+      const { center, size } = getBoxCenterAndSize(mesh);
 
       uuidFromColorMap[uuidIndexCounter] = {
         uuid: mesh.uuid,
-        boxCenter: position.toArray(),
+        boxCenter: center.toArray(),
         boxSize: size,
       };
 
