@@ -1,18 +1,11 @@
-import { useFrame, useThree } from '@react-three/fiber';
-import React, { useEffect, useRef, useState } from 'react';
+import { useThree } from '@react-three/fiber';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import {
-  findDuplicateGeometries,
-  flattenHierarchy,
-  mergeGeometriesInScene,
-  optimizeScene,
-  testIdempotency,
-} from '../utils/findDuplicates';
-import { OrbitControls } from 'three-stdlib';
-import { saveGLB } from '../utils/saveGLB';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { useGlobalStore } from '../store/useGlobalStore';
+import { mergeGeometriesInScene } from '../utils/findDuplicates';
+import { saveGLB } from '../utils/saveGLB';
 
 import { Color } from 'three';
 
@@ -38,32 +31,38 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
   useEffect(() => {
     if (!model) return;
 
+    // if (1) return;
+
     // Save original materials so that we can non-destructively assign picking materials
     const originalMaterials = new Map<THREE.Mesh, THREE.Material>();
     const renderer = new THREE.WebGLRenderer();
     const pickingTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
     renderer.setRenderTarget(pickingTarget);
 
-    function getColorAtPoint(model: THREE.Group, x: number, y: number) {
+    const pickingMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+      precision lowp float;
+      attribute vec3 color;
+      varying vec3 vColor;
+      void main() {
+        vColor = color;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+      fragmentShader: `
+      precision lowp float;
+      varying vec3 vColor;
+      void main() {
+        gl_FragColor = vec4(vColor, 1.0);
+      }`,
+    });
 
+    function getColorAtPoint(model: THREE.Group, x: number, y: number) {
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
           originalMaterials.set(child, child.material);
-          const uniqueColor = new Color(child.id); // Assuming ID is unique and can be mapped to color
-          child.material = new THREE.ShaderMaterial({
-            vertexShader: `
-            precision highp float;
-            void main() {
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }`,
-            fragmentShader: `
-            precision highp float;
-            uniform vec3 pickingColor;
-            void main() {
-              gl_FragColor = vec4(pickingColor, 1.0);
-            }`,
-            uniforms: { pickingColor: { value: uniqueColor } },
-          });
+          child.material = pickingMaterial;
+          // child.geometry.computeVertexNormals();
+          // child.geometry.computeBoundingBox();
         }
       });
 

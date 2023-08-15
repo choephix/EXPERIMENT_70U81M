@@ -25,7 +25,7 @@ export function flattenHierarchy(scene: Object3D): void {
 const uuidFromColorMap = {} as Record<number, string>;
 
 export function mergeGeometriesInScene(scene: THREE.Group) {
-  const useVertexColors = false;
+  const useVertexColors = true;
   const defaultMaterials = [
     new THREE.MeshLambertMaterial({ color: 0x6090c0, vertexColors: useVertexColors }),
     new THREE.MeshLambertMaterial({ color: 0xc06090, vertexColors: useVertexColors }),
@@ -65,6 +65,19 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
     function commitGeometries() {
       if (geometries.length <= 0) {
         return;
+      }
+
+      for (const geometry of geometries) {
+        const colors = new Float32Array(geometry.attributes.position.count * 3);
+        const color = new THREE.Color(Math.random() * 0xffffff);
+
+        for (let i = 0; i < colors.length; i += 3) {
+          colors[i] = color.r;
+          colors[i + 1] = color.g;
+          colors[i + 2] = color.b;
+        }
+
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       }
 
       const mergedGeometry = BufferGeometryUtils.mergeGeometries([...geometries], false);
