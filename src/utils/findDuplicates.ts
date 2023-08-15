@@ -23,17 +23,13 @@ export function flattenHierarchy(scene: Object3D): void {
   scene.updateWorldMatrix(true, true);
 }
 
-const uuidFromColorMap = {} as Record<number, any> & Partial<
-  Record<
-    number,
-    {
-      uuid: string;
-      xyz: [number, number, number];
-    }
-  >
->;
+const uuidFromColorMap = //
+  {} as Record<number, any> &
+    Partial<Record<number, { uuid: string; xyz: [number, number, number] }>>;
 
 export function mergeGeometriesInScene(scene: THREE.Group) {
+  scene.updateMatrixWorld(true);
+
   const useVertexColors = true;
   const defaultMaterials = [
     new THREE.MeshLambertMaterial({ color: 0x6090c0, vertexColors: useVertexColors }),
@@ -64,7 +60,8 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
     }
   });
 
-  let uuidIndexCounter = 0;
+  // Counter starts from 1 to avoid black color
+  let uuidIndexCounter = 1;
 
   const mergedMeshes: ProperMesh[] = [];
   function populateMergedMeshes(
@@ -89,7 +86,7 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
 
     function commitGeometries() {
       if (geometries.length <= 0) {
-        return;
+        return null;
       }
 
       const mergedGeometry = BufferGeometryUtils.mergeGeometries([...geometries], false);
@@ -98,7 +95,6 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       const mergedMesh = new Mesh(mergedGeometry, material);
       mergedMesh.name = `MergedObject${mergedMeshes.length}`;
       mergedMesh.userData.isSmall = smallFlag;
-      mergedMeshes.push(mergedMesh);
 
       mergedMesh.uuid;
 
@@ -108,12 +104,13 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       geometries.length = 0;
 
       console.log(mergedGeometry, mergedMesh);
+
+      return mergedMesh;
     }
 
     // const idDelta = ~~(0xf0f0f0 / meshes.length);
     const idDelta = 1;
     for (const mesh of meshes) {
-      // Counter starts from 1 to avoid black color
       uuidIndexCounter += idDelta;
 
       const clonedGeometry = mesh.geometry.clone();
@@ -145,7 +142,10 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       }
     }
 
-    commitGeometries();
+    const mergedMesh = commitGeometries();
+    if (mergedMesh) {
+      mergedMeshes.push(mergedMesh);
+    }
   }
 
   for (let i = 0; i < originalMeshGroups.length; i++) {
@@ -167,7 +167,7 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
   const newScene = new THREE.Group();
   newScene.matrix.copy(scene.matrix);
   newScene.add(...mergedMeshes);
-  newScene.rotateX(-0.5 * Math.PI); // Rotate to compensate for flipped Z and Y axis
+  // newScene.rotateX(-0.5 * Math.PI); // Rotate to compensate for flipped Z and Y axis
   newScene.updateMatrixWorld(true);
   newScene.userData = {
     uuidFromColorMap,

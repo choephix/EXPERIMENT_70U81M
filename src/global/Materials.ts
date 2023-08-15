@@ -1,12 +1,8 @@
-import { ShaderMaterial } from 'three';
+import { MeshLambertMaterial, ShaderMaterial } from 'three';
 
 export module Materials {
-  /**
-   * Material used for rendering 3D meshes in the scene with basic lighting and selection highlighting.
-   *
-   * Uses GPU acceleration to improve performance of rendering 3D meshes in the scene.
-   * This is achieved by utilizing the WebGL API and shaders to offload computations to the GPU.
-   */
+  export const SOURCE_MATERIAL = new MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+
   export const DISPLAY_MATERIAL = new ShaderMaterial({
     uniforms: { selectedSourceMeshIndex: { value: [0, 0, 0] } },
     vertexShader: `
@@ -51,15 +47,20 @@ export module Materials {
   export const PICKING_MATERIAL = new ShaderMaterial({
     vertexShader: `
     precision mediump float;
+    
     attribute vec3 sourceMeshIndex;
+
     varying vec3 vColor;
+
     void main() {
       vColor = sourceMeshIndex;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
     fragmentShader: `
     precision mediump float;
+
     varying vec3 vColor;
+
     void main() {
       gl_FragColor = vec4(vColor, 1.0);
     }`,
