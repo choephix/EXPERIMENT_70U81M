@@ -32,7 +32,6 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
   useEffect(() => {
     if (!model) return;
-
     // if (1) return;
 
     // Save original materials so that we can non-destructively assign picking materials

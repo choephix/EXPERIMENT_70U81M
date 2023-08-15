@@ -133,8 +133,8 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       .map((_, i) => new THREE.Color().setHSL(i / __boxesCOunt, 1, 0.5).getHex());
     console.log({ a: a.map(i => `0x${i.toString(16).padStart(6, '0')}`) });
 
-    // const idDelta = ~~(0xf0f0f0 / meshes.length);
-    const idDelta = 1;
+    const idDelta = ~~(0xf0f0f0 / meshes.length);
+    // const idDelta = 1;
     for (const mesh of meshes) {
       uuidIndexCounter += idDelta;
 
