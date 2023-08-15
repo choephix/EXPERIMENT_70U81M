@@ -22,13 +22,15 @@ export function flattenHierarchy(scene: Object3D): void {
   scene.updateWorldMatrix(true, true);
 }
 
-const uuidFromColorMap = {} as Partial<Record<
-  number,
-  {
-    uuid: string;
-    xyz: [number, number, number];
-  }
->>;
+const uuidFromColorMap = {} as Partial<
+  Record<
+    number,
+    {
+      uuid: string;
+      xyz: [number, number, number];
+    }
+  >
+>;
 
 export function mergeGeometriesInScene(scene: THREE.Group) {
   const useVertexColors = true;
@@ -50,10 +52,13 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
 
       if (boxSize < 0.025) {
         originalMeshGroups[0].push(mesh);
+        mesh.userData.color = 0x6090c0;
       } else if (boxSize < 0.05) {
         originalMeshGroups[1].push(mesh);
+        mesh.userData.color = 0xc06090;
       } else {
         originalMeshGroups[2].push(mesh);
+        mesh.userData.color = 0xc0c0c0;
       }
     }
   });
@@ -113,11 +118,17 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       const clonedGeometry = mesh.geometry.clone();
       clonedGeometry.applyMatrix4(mesh.matrixWorld);
 
-      const bufferAttribute = convertColorToBufferAttribute(
+      const sourceMeshIndexBufferAttribute = convertColorToBufferAttribute(
         uuidIndexCounter,
         clonedGeometry.attributes.position.count
       );
-      clonedGeometry.setAttribute('color', bufferAttribute);
+      clonedGeometry.setAttribute('sourceMeshIndex', sourceMeshIndexBufferAttribute);
+
+      const colorBufferAttribute = convertColorToBufferAttribute(
+        mesh.userData.color,
+        clonedGeometry.attributes.position.count
+      );
+      clonedGeometry.setAttribute('color', colorBufferAttribute);
 
       uuidFromColorMap[uuidIndexCounter] = {
         uuid: mesh.uuid,
