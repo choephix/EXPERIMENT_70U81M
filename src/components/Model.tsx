@@ -3,11 +3,12 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { useGlobalStore } from '../store/useGlobalStore';
+import { useGlobalStore } from '../global/useGlobalStore';
 import { mergeGeometriesInScene } from '../utils/findDuplicates';
 import { saveGLB } from '../utils/saveGLB';
 
 import { Color } from 'three';
+import { Materials } from '../global/materials';
 
 type ModelProps = {
   url: string;
@@ -24,7 +25,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
   const ref = useRef<THREE.Object3D | null>(null);
 
-  const { gl, controls } = useThree();
+  const { gl, controls, invalidate } = useThree();
 
   const canvas = gl.getContext().canvas as HTMLCanvasElement;
 
@@ -39,28 +40,11 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
     const pickingTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
     renderer.setRenderTarget(pickingTarget);
 
-    const pickingMaterial = new THREE.ShaderMaterial({
-      vertexShader: `
-      precision lowp float;
-      attribute vec3 sourceMeshIndex;
-      varying vec3 vColor;
-      void main() {
-        vColor = sourceMeshIndex;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`,
-      fragmentShader: `
-      precision lowp float;
-      varying vec3 vColor;
-      void main() {
-        gl_FragColor = vec4(vColor, 1.0);
-      }`,
-    });
-
     function getColorAtPoint(model: THREE.Group, x: number, y: number) {
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
           originalMaterials.set(child, child.material);
-          child.material = pickingMaterial;
+          child.material = Materials.PICKING_MATERIAL;
           // child.geometry.computeVertexNormals();
           // child.geometry.computeBoundingBox();
         }
@@ -82,9 +66,14 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
-          child.material = originalMaterials.get(child);
+          // child.material = originalMaterials.get(child);
+          child.material = Materials.DISPLAY_MATERIAL;
         }
       });
+
+      const vec3 = new THREE.Color(integer).toArray() as [number, number, number];
+      Materials.DISPLAY_MATERIAL.uniforms.selectedSourceMeshIndex = { value: vec3 };
+      invalidate();
 
       if (integer === 0) {
         return null;
@@ -106,7 +95,14 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
       const info = scene.userData.uuidFromColorMap[c];
 
-      console.log('🚁', c, hex, info);
+      console.log(
+        '🚁',
+        hex,
+        info,
+        `Comparison:\n`,
+        info._c,
+        Materials.DISPLAY_MATERIAL.uniforms.selectedSourceMeshIndex.value
+      );
 
       // camera.lookAt(...info.xyz);
     }

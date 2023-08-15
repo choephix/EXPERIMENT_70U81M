@@ -22,7 +22,7 @@ export function flattenHierarchy(scene: Object3D): void {
   scene.updateWorldMatrix(true, true);
 }
 
-const uuidFromColorMap = {} as Partial<
+const uuidFromColorMap = {} as Record<number, any> & Partial<
   Record<
     number,
     {
@@ -124,15 +124,17 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       );
       clonedGeometry.setAttribute('sourceMeshIndex', sourceMeshIndexBufferAttribute);
 
-      const colorBufferAttribute = convertColorToBufferAttribute(
-        mesh.userData.color,
-        clonedGeometry.attributes.position.count
-      );
-      clonedGeometry.setAttribute('color', colorBufferAttribute);
+      // const colorBufferAttribute = convertColorToBufferAttribute(
+      //   mesh.userData.color,
+      //   clonedGeometry.attributes.position.count
+      // );
+      // clonedGeometry.setAttribute('color', colorBufferAttribute);
 
+      const __colorObject = new THREE.Color(uuidIndexCounter);
       uuidFromColorMap[uuidIndexCounter] = {
         uuid: mesh.uuid,
         xyz: mesh.position.toArray(),
+        _c: __colorObject.toArray(),
       };
 
       geometries.push(clonedGeometry);

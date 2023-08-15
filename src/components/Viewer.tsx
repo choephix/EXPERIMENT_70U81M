@@ -77,7 +77,7 @@ const Viewer = () => {
               // antialias: false,
               antialias: true,
               powerPreference: 'high-performance',
-              precision: 'lowp', // Can be "highp", "mediump", "lowp"
+              precision: 'mediump', // Can be "highp", "mediump", "lowp"
             }}
             frameloop='demand' // Disable automatic rendering
           >

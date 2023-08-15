@@ -1,4 +1,4 @@
-import { createStoreWrappedWithProxy } from './createStoreWrappedWithProxy';
+import { createStoreWrappedWithProxy } from '../store/createStoreWrappedWithProxy';
 import type { StateCreator } from 'zustand';
 
 import * as THREE from 'three';

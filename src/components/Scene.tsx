@@ -1,7 +1,7 @@
 import { Environment } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import Model from './Model';
-import { useGlobalStore } from '../store/useGlobalStore';
+import { useGlobalStore } from '../global/useGlobalStore';
 
 const Scene: React.FC<{ url: string }> = ({ url }) => {
   const { camera } = useThree();
