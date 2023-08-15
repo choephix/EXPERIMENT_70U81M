@@ -1,6 +1,7 @@
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
 import { Mesh, Object3D, BufferGeometry } from 'three';
+import { Materials } from '../global/materials';
 
 const geometriesMaxCount = 10000;
 
@@ -148,7 +149,8 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
   }
 
   for (let i = 0; i < originalMeshGroups.length; i++) {
-    const material = defaultMaterials[i];
+    // const material = defaultMaterials[i];
+    const material = Materials.DISPLAY_MATERIAL;
     const meshes = originalMeshGroups[i];
     populateMergedMeshes(meshes, material, i === 0);
   }

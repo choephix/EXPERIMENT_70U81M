@@ -10,7 +10,7 @@ export module Materials {
   export const DISPLAY_MATERIAL = new ShaderMaterial({
     uniforms: { selectedSourceMeshIndex: { value: [0, 0, 0] } },
     vertexShader: `
-    precision highp float;
+    precision mediump float;
 
     uniform vec3 selectedSourceMeshIndex;
     
@@ -31,7 +31,7 @@ export module Materials {
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
     fragmentShader: `
-    precision highp float;
+    precision mediump float;
 
     varying vec3 vColor;
     
@@ -50,7 +50,7 @@ export module Materials {
    */
   export const PICKING_MATERIAL = new ShaderMaterial({
     vertexShader: `
-    precision highp float;
+    precision mediump float;
     attribute vec3 sourceMeshIndex;
     varying vec3 vColor;
     void main() {
@@ -58,7 +58,7 @@ export module Materials {
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }`,
     fragmentShader: `
-    precision highp float;
+    precision mediump float;
     varying vec3 vColor;
     void main() {
       gl_FragColor = vec4(vColor, 1.0);
