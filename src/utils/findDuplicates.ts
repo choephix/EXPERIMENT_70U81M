@@ -1,7 +1,7 @@
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
 import { Mesh, Object3D, BufferGeometry } from 'three';
-import { Materials } from '../global/materials';
+import { Materials } from '../global/Materials';
 
 const geometriesMaxCount = 10000;
 

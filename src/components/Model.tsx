@@ -3,12 +3,12 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { useGlobalStore } from '../global/useGlobalStore';
+import { useGlobalStore } from '../hooks/useGlobalStore';
 import { mergeGeometriesInScene } from '../utils/findDuplicates';
 import { saveGLB } from '../utils/saveGLB';
 
 import { Color } from 'three';
-import { Materials } from '../global/materials';
+import { Materials } from '../global/Materials';
 
 type ModelProps = {
   url: string;
