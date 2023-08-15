@@ -2,7 +2,7 @@ import { createStoreWrappedWithProxy } from '../store/createStoreWrappedWithProx
 import type { StateCreator } from 'zustand';
 
 import * as THREE from 'three';
-import { createBoxGrid } from '../debug/createBoxGrid';
+import { OrbitControls } from 'three-stdlib';
 
 type Model = THREE.Group;
 
@@ -10,6 +10,7 @@ function createStateObject(
   ...args: Parameters<
     StateCreator<{
       model: Model | null;
+      controls: OrbitControls | null;
     }>
   >
 ) {
@@ -19,6 +20,10 @@ function createStateObject(
     model: null as Model | null,
     setModel: (model: Model | null) => {
       set({ model });
+    },
+    controls: null as OrbitControls | null,
+    setControls: (controls: OrbitControls | null) => {
+      set({ controls });
     },
   };
 }

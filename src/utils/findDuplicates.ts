@@ -25,7 +25,16 @@ export function flattenHierarchy(scene: Object3D): void {
 
 const uuidFromColorMap = //
   {} as Record<number, any> &
-    Partial<Record<number, { uuid: string; xyz: [number, number, number] }>>;
+    Partial<
+      Record<
+        number,
+        {
+          uuid: string;
+          boxSize: number;
+          center: [number, number, number];
+        }
+      >
+    >;
 
 export function mergeGeometriesInScene(scene: THREE.Group) {
   scene.updateMatrixWorld(true);
@@ -90,7 +99,7 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
         r: (color >> 16) & 0xff,
         g: (color >> 8) & 0xff,
         b: color & 0xff,
-      }
+      };
 
       // const colorObject = new THREE.Color(color);
 
@@ -131,10 +140,9 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
     const a = new Array(__boxesCOunt)
       .fill(0)
       .map((_, i) => new THREE.Color().setHSL(i / __boxesCOunt, 1, 0.5).getHex());
-    console.log({ a: a.map(i => `0x${i.toString(16).padStart(6, '0')}`) });
 
-    const idDelta = ~~(0xf0f0f0 / meshes.length);
-    // const idDelta = 1;
+    // const idDelta = ~~(0xf0f0f0 / meshes.length);
+    const idDelta = 1;
     for (const mesh of meshes) {
       uuidIndexCounter += idDelta;
 
@@ -155,11 +163,17 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
       );
       clonedGeometry.setAttribute('color', colorBufferAttribute);
 
-      const __colorObject = new THREE.Color(uuidIndexCounter);
+      //// TODO: This must become the center of the object
+      //// (which is not always the case with local zero)
+      const box = new THREE.Box3().setFromObject(mesh);
+      const center = new THREE.Vector3();
+      const position = box.getCenter(center);
+      const size = box.getSize(new THREE.Vector3()).length();
+
       uuidFromColorMap[uuidIndexCounter] = {
         uuid: mesh.uuid,
-        xyz: mesh.position.toArray(),
-        _c: __colorObject.toArray(),
+        boxCenter: position.toArray(),
+        boxSize: size,
       };
 
       geometries.push(clonedGeometry);
@@ -213,8 +227,8 @@ export function mergeGeometriesInScene(scene: THREE.Group) {
   /**
    * TODO
    *
-   * [ ] Test oindex -> uuid mapping
-   * [ ] Shader to colorize selected oindex/uuid
+   * [z] Test oindex -> uuid mapping
+   * [z] Shader to colorize selected oindex/uuid
    * [ ] Move this shit server-side
    *
    */

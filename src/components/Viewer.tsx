@@ -1,14 +1,18 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import { Button } from 'antd';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Dropzone from './Dropzone';
 import Scene from './Scene';
 import { OrbitControls } from '@react-three/drei';
+import { useGlobalStore } from '../hooks/useGlobalStore';
 
 const Controls = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const { invalidate, camera } = useThree(); // Get the `invalidate` function from `useThree` hook
+  const { setControls } = useGlobalStore();
+
   const controlsRef = useRef<any>(null);
+  useEffect(() => setControls(controlsRef.current), [setControls, controlsRef.current]);
 
   const handleStart = () => {
     setIsDragging(true);
@@ -20,8 +24,11 @@ const Controls = () => {
 
   const handleChange = () => {
     invalidate(); // Force a re-render
-
+    
     if (!controlsRef.current) return;
+    
+    controlsRef.current.enableZoom = true;
+    controlsRef.current.zoomToCursor = true;
 
     const distance = controlsRef.current?.getDistance() || 0;
     // const zoomSpeed = distance > 10 ? 1 : distance / 200;
@@ -41,6 +48,7 @@ const Controls = () => {
       onStart={handleStart}
       onEnd={handleEnd}
       onChange={handleChange} // Use the `handleChange` function here
+      
     />
   );
 };

@@ -6,10 +6,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { useGlobalStore } from '../hooks/useGlobalStore';
 import { mergeGeometriesInScene } from '../utils/findDuplicates';
 import { saveGLB } from '../utils/saveGLB';
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
 import { Color } from 'three';
 import { Materials } from '../global/Materials';
 import { createBoxGrid } from '../debug/createBoxGrid';
+import { createDebugSphere } from '../debug/createDebugSphere';
 
 type ModelProps = {
   url: string;
@@ -26,9 +28,11 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
   const ref = useRef<THREE.Object3D | null>(null);
 
-  const { gl, controls, invalidate } = useThree();
+  const { gl, invalidate } = useThree();
 
   const canvas = gl.getContext().canvas as HTMLCanvasElement;
+
+  const { controls } = useGlobalStore();
 
   useEffect(() => {
     if (!model) return;
@@ -113,7 +117,15 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         console.log('🚁🔥', hex, info);
       }
 
-      // camera.lookAt(...info.xyz);
+      if (!info) return console.log('No info for color', hex);
+      if (!controls) return console.log('No controls');
+
+      controls.target.set(...(info.boxCenter as [number, number, number]));
+
+      camera.position.lerp(controls.target, 0.5);
+
+      const ball = createDebugSphere(info.boxCenter, 0.2);
+      scene.add(ball);
     }
     canvas.addEventListener('click', onDocumentMouseDown);
 
