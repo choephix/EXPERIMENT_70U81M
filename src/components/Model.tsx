@@ -63,8 +63,8 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         pixelBuffer
       );
       const integer = (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | pixelBuffer[2];
-      
-      console.log({ integer, pixelBuffer }, [...pixelBuffer.values()]);;
+
+      console.log({ integer, pixelBuffer }, [...pixelBuffer.values()]);
 
       model.traverse(child => {
         if (child instanceof THREE.Mesh) {
@@ -72,7 +72,8 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
         }
       });
 
-      const vec3 = new THREE.Color(integer).toArray() as [number, number, number];
+      // const vec3 = new THREE.Color(integer).toArray() as [number, number, number];
+      const vec3 = pixelBuffer.slice(0, 3);
       Materials.DISPLAY_MATERIAL.uniforms.selectedSourceMeshIndex = { value: vec3 };
       invalidate();
 
@@ -90,9 +91,9 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       const cy = ev.clientY * window.devicePixelRatio;
 
       const c = getColorAtPoint(scene, cx, cy);
-      
+
       if (!c) {
-        console.log(null)
+        console.log(null);
         return;
       }
 
@@ -136,7 +137,7 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
 
       // updateProperties(gltf.scene);
       // flattenHierarchy(gltf.scene);
-      gltf.scene = createBoxGrid();
+      // gltf.scene = createBoxGrid();
 
       // const model = gltf.scene;
       const model = mergeGeometriesInScene(gltf.scene);

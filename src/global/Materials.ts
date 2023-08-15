@@ -19,12 +19,12 @@ export module Materials {
     varying vec3 vColor;
     
     bool vec3Equal(vec3 a, vec3 b, float tolerance) {
+      // return all(equal(a, b));
       return length(a - b) < tolerance;
-      // return a.z == b.z;
     }
     
     void main() {
-      bool selected = vec3Equal(sourceMeshIndex / 255.0, selectedSourceMeshIndex, .025);
+      bool selected = vec3Equal(sourceMeshIndex, selectedSourceMeshIndex, .5);
       vColor = selected ? vec3(0.129, 0.508, 0.822) : vec3(0.8);
 
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
