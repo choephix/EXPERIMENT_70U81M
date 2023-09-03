@@ -2,15 +2,16 @@ import { createStoreWrappedWithProxy } from '../store/createStoreWrappedWithProx
 import type { StateCreator } from 'zustand';
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three-stdlib';
+import type { ArcballControls, OrbitControls } from 'three-stdlib';
 
 type Model = THREE.Group;
+type CameraControls = ArcballControls | OrbitControls;
 
 function createStateObject(
   ...args: Parameters<
     StateCreator<{
       model: Model | null;
-      controls: OrbitControls | null;
+      controls: CameraControls | null;
     }>
   >
 ) {
@@ -21,8 +22,8 @@ function createStateObject(
     setModel: (model: Model | null) => {
       set({ model });
     },
-    controls: null as OrbitControls | null,
-    setControls: (controls: OrbitControls | null) => {
+    controls: null as CameraControls | null,
+    setControls: (controls: CameraControls | null) => {
       set({ controls });
     },
   };

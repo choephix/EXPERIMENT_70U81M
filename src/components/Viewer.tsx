@@ -3,15 +3,19 @@ import { Button } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import Dropzone from './Dropzone';
 import Scene from './Scene';
-import { OrbitControls } from '@react-three/drei';
+import { ArcballControls, OrbitControls, OrthographicCamera } from '@react-three/drei';
 import { useGlobalStore } from '../hooks/useGlobalStore';
+
+import type { ArcballControls as ArcballControlsImpl } from 'three-stdlib';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+// import type { OrbitControls as OrbitControlsImpl } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const Controls = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const { invalidate, camera } = useThree(); // Get the `invalidate` function from `useThree` hook
   const { setControls } = useGlobalStore();
 
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<ArcballControlsImpl>(null);
   useEffect(() => setControls(controlsRef.current), [setControls, controlsRef.current]);
 
   const handleStart = () => {
@@ -24,17 +28,69 @@ const Controls = () => {
 
   const handleChange = () => {
     invalidate(); // Force a re-render
-    
-    if (!controlsRef.current) return;
-    
-    controlsRef.current.enableZoom = true;
-    controlsRef.current.zoomToCursor = true;
 
-    const distance = controlsRef.current?.getDistance() || 0;
-    // const zoomSpeed = distance > 10 ? 1 : distance / 200;
-    const zoomSpeed = 2;
-    controlsRef.current.zoomSpeed = zoomSpeed;
+    if (!controlsRef.current) return;
+
+    // controlsRef.current.cursorZoom = true;
+
+    // const distance = controlsRef.current?.getDistance() || 0;
+    // // const zoomSpeed = distance > 10 ? 1 : distance / 200;
+    // const zoomSpeed = 2;
+    // controlsRef.current.zoomSpeed = zoomSpeed;
   };
+
+  console.log({ control: controlsRef.current });
+
+  camera.near = 0.0001;
+
+  controlsRef.current?.setGizmosVisible(true);
+
+  return (
+    <ArcballControls
+      ref={controlsRef}
+      enableZoom
+      cursorZoom
+      enableGrid
+      enableAnimations={false}
+      dampingFactor={0.5}
+      onStart={handleStart}
+      onEnd={handleEnd}
+      onChange={handleChange} // Use the `handleChange` function here
+    />
+  );
+};
+
+const Controls2 = () => {
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const { invalidate, camera } = useThree(); // Get the `invalidate` function from `useThree` hook
+  const { setControls } = useGlobalStore();
+
+  const controlsRef = useRef<OrbitControlsImpl>(null);
+  useEffect(() => setControls(controlsRef.current), [setControls, controlsRef.current]);
+
+  const handleStart = () => {
+    setIsDragging(true);
+  };
+
+  const handleEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleChange = () => {
+    invalidate(); // Force a re-render
+
+    if (!controlsRef.current) return;
+
+    controlsRef.current.enableZoom = true;
+    // controlsRef.current.zoomToCursor = true;
+
+    // const distance = controlsRef.current?.getDistance() || 0;
+    // // const zoomSpeed = distance > 10 ? 1 : distance / 200;
+    // const zoomSpeed = 2;
+    // controlsRef.current.zoomSpeed = zoomSpeed;
+  };
+
+  console.log({ control: controlsRef.current });
 
   camera.near = 0.0001;
 
@@ -48,7 +104,6 @@ const Controls = () => {
       onStart={handleStart}
       onEnd={handleEnd}
       onChange={handleChange} // Use the `handleChange` function here
-      
     />
   );
 };
@@ -89,7 +144,9 @@ const Viewer = () => {
             }}
             frameloop='demand' // Disable automatic rendering
           >
+            {/* <OrthographicCamera makeDefault position={[0, 0, 10]} zoom={10} /> */}
             <Controls />
+            {/* <Controls2 /> */}
             <Scene url={url} />
           </Canvas>
         </>

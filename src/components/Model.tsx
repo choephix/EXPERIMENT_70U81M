@@ -120,9 +120,8 @@ const Model: React.FC<ModelProps> = ({ url, camera }: ModelProps) => {
       if (!info) return console.log('No info for color', hex);
       if (!controls) return console.log('No controls');
 
-      controls.target.set(...(info.boxCenter as [number, number, number]));
-
-      camera.position.lerp(controls.target, 0.5);
+      // controls.target.set(...(info.boxCenter as [number, number, number]));
+      // camera.position.lerp(controls.target, 0.5);
 
       const ball = createDebugSphere(info.boxCenter, 0.2);
       scene.add(ball);
